@@ -49,7 +49,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
 
         allowed = await limiter.acquire()
         if not allowed:
-            logger.warning("rate limiter max_wait exceeded for %r, serving stale", key)
+            logger.warning("rate limiter max_wait exceeded for %r (forceRefresh=%s), serving stale", key, force_refresh)
             try:
                 stale = await cache.get(key)
                 return PlainTextResponse(stale, headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"})
