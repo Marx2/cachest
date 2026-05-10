@@ -32,16 +32,26 @@ def test_record_stale():
     assert s.stale == 1
 
 
+def test_record_error():
+    stats.record("/dy/{ticker}", "ERROR")
+    s = stats.get("/dy/{ticker}")
+    assert s.total == 1
+    assert s.errors == 1
+    assert s.hits == 0
+
+
 def test_record_accumulates():
     stats.record("/dy/{ticker}", "HIT")
     stats.record("/dy/{ticker}", "HIT")
     stats.record("/dy/{ticker}", "MISS")
     stats.record("/dy/{ticker}", "STALE")
+    stats.record("/dy/{ticker}", "ERROR")
     s = stats.get("/dy/{ticker}")
-    assert s.total == 4
+    assert s.total == 5
     assert s.hits == 2
     assert s.misses == 1
     assert s.stale == 1
+    assert s.errors == 1
 
 
 def test_record_multiple_routes():
