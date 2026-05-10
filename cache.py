@@ -36,5 +36,12 @@ class RedisCache:
         stamped = f"{int(time.time())}|{value}"
         await self._client.setex(key, stale_ttl, stamped)
 
+    async def scan_prefix(self, prefix: str) -> list[str]:
+        """Return raw stored values for all keys matching prefix:*"""
+        keys = [k async for k in self._client.scan_iter(f"{prefix}:*")]
+        if not keys:
+            return []
+        return [v for v in await self._client.mget(*keys) if v is not None]
+
     async def close(self) -> None:
         await self._client.aclose()
