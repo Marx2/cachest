@@ -16,6 +16,8 @@ class RouteConfig:
     url: str
     cache_ttl: int
     extract: ExtractConfig = field(default_factory=ExtractConfig)
+    fetch_interval: float = 2.0
+    fetch_max_wait: float = 4.0
 
 
 @dataclass
@@ -57,6 +59,8 @@ def load(path: str | Path) -> Config:
             url=r["url"],
             cache_ttl=int(r["cache_ttl"]),
             extract=extract,
+            fetch_interval=float(r.get("fetch_interval", 2.0)),
+            fetch_max_wait=float(r.get("fetch_max_wait", 4.0)),
         ))
 
     return Config(redis=redis_cfg, routes=routes)
