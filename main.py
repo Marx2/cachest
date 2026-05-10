@@ -212,6 +212,8 @@ def create_app(config: Config) -> FastAPI:
                 "  %s -> %s (cache_ttl: %ss, stale_ttl: %ss, fetch_interval: %ss, fetch_max_wait: %ss)",
                 r.path, r.url, r.cache_ttl, r.stale_ttl, r.fetch_interval, r.fetch_max_wait,
             )
+        await stats.load_from_redis(cache._client)
+        stats.init(cache._client)
         yield
         await cache.close()
 
