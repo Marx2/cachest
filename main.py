@@ -51,7 +51,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
 
         allowed = await limiter.acquire()
         if not allowed:
-            logger.warning("rate limiter max_wait exceeded for %r (forceRefresh=%s), serving stale", key, force_refresh)
+            logger.warning("[rate-limit] max_wait exceeded for %r (forceRefresh=%s) — no upstream call made", key, force_refresh)
             try:
                 stale = await cache.get(key, route.cache_ttl)
                 return PlainTextResponse(stale, headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"})
@@ -65,7 +65,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
         try:
             value = await fetch(url, route.extract)
         except UpstreamError as e:
-            logger.warning("upstream %r returned HTTP %d, serving stale", e.url, e.status_code)
+            logger.warning("[upstream-error] %r returned HTTP %d — serving stale", e.url, e.status_code)
             try:
                 stale = await cache.get(key, route.cache_ttl)
                 return PlainTextResponse(
