@@ -9,7 +9,8 @@ from fastapi.responses import PlainTextResponse, Response
 
 from cache import CacheMiss, RedisCache
 from config import Config, RouteConfig, load
-from fetcher import RateLimitedError, fetch
+from fetcher import UpstreamError, fetch
+from rate_limiter import RateLimiter
 
 logger = logging.getLogger("cachest")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -31,7 +32,7 @@ def _build_url(template: str, path_params: dict[str, str]) -> str:
     return url
 
 
-def make_handler(route: RouteConfig, cache: RedisCache):
+def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
     async def handler(request: Request) -> PlainTextResponse:
         path_params: dict[str, Any] = dict(request.path_params)
         key = _cache_key(route.path, path_params)
@@ -46,21 +47,31 @@ def make_handler(route: RouteConfig, cache: RedisCache):
             except Exception as e:
                 logger.warning("cache GET %r failed: %s — proceeding without cache", key, e)
 
+        allowed = await limiter.acquire()
+        if not allowed:
+            logger.warning("rate limiter max_wait exceeded for %r, serving stale", key)
+            try:
+                stale = await cache.get(key)
+                return PlainTextResponse(stale, headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"})
+            except CacheMiss:
+                pass
+            return PlainTextResponse("rate limit exceeded and no cached value available", status_code=503)
+
         url = _build_url(route.url, path_params)
         try:
             value = await fetch(url, route.extract)
-        except RateLimitedError:
-            logger.warning("rate limited fetching %r", url)
+        except UpstreamError as e:
+            logger.warning("upstream %r returned HTTP %d, serving stale", e.url, e.status_code)
             try:
                 stale = await cache.get(key)
                 return PlainTextResponse(
                     stale,
-                    headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"},
+                    headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": f"upstream-{e.status_code}"},
                 )
             except CacheMiss:
                 pass
             return PlainTextResponse(
-                "upstream rate limited and no cached value available",
+                f"upstream returned {e.status_code} and no cached value available",
                 status_code=503,
             )
         except Exception as e:
@@ -89,7 +100,10 @@ def create_app(config: Config) -> FastAPI:
     async def lifespan(app: FastAPI):
         logger.info("cachest starting — %d route(s) registered", len(config.routes))
         for r in config.routes:
-            logger.info("  %s -> %s (TTL: %ss)", r.path, r.url, r.cache_ttl)
+            logger.info(
+                "  %s -> %s (TTL: %ss, fetch_interval: %ss, fetch_max_wait: %ss)",
+                r.path, r.url, r.cache_ttl, r.fetch_interval, r.fetch_max_wait,
+            )
         yield
         await cache.close()
 
@@ -102,9 +116,10 @@ def create_app(config: Config) -> FastAPI:
         return Response(_favicon, media_type="image/svg+xml")
 
     for route in config.routes:
+        limiter = RateLimiter(interval=route.fetch_interval, max_wait=route.fetch_max_wait)
         app.add_api_route(
             route.path,
-            make_handler(route, cache),
+            make_handler(route, cache, limiter),
             methods=["GET"],
             response_class=PlainTextResponse,
         )
