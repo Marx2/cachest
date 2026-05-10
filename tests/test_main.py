@@ -23,10 +23,16 @@ def _make_config(**route_kwargs) -> Config:
 
 @pytest.fixture
 def mock_cache():
+    async def _empty():
+        return
+        yield
+
     cache = MagicMock()
     cache.get = AsyncMock(side_effect=CacheMiss("test:1"))
     cache.set = AsyncMock()
     cache.close = AsyncMock()
+    cache._client = MagicMock()
+    cache._client.scan_iter = MagicMock(return_value=_empty())
     return cache
 
 
