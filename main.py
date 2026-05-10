@@ -6,7 +6,7 @@ from typing import Any
 from pathlib import Path
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
 
 import stats
 from cache import CacheMiss, CacheStale, RedisCache
@@ -217,6 +217,10 @@ def create_app(config: Config) -> FastAPI:
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
         return Response(_favicon, media_type="image/svg+xml")
+
+    @app.get("/", include_in_schema=False)
+    async def root():
+        return RedirectResponse(url="/stats")
 
     @app.get("/stats", response_class=HTMLResponse, include_in_schema=False)
     async def stats_page():
