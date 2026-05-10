@@ -28,7 +28,8 @@ routes:
       selector: "dl.metrics-list .metric-row"   # CSS selector for rows
       label: "Yield"                             # <dt> text to match
       field: "dd"                                # sibling element to return
-    cache_ttl: 86400       # seconds (24h)
+    cache_ttl: 86400       # seconds (24h) — freshness window
+    stale_ttl: 2592000    # seconds (30 days) — how long key survives for stale fallback (default: 2592000)
     fetch_interval: 2      # min seconds between remote fetches (default: 2)
     fetch_max_wait: 4      # max seconds to queue before falling back to stale (default: 4)
 
@@ -36,6 +37,7 @@ routes:
     url: "https://someapi.com/price/{ticker}"
     # no extract block = return plain response body as-is
     cache_ttl: 300
+    stale_ttl: 2592000
     fetch_interval: 2
     fetch_max_wait: 4
 ```
@@ -75,6 +77,7 @@ Each route enforces a minimum interval between upstream fetches (`fetch_interval
 If a request arrives before the interval has elapsed, it waits up to `fetch_max_wait` seconds
 (default 4s). If the wait would exceed `fetch_max_wait`, the latest cached value is returned
 immediately (even if days old). This applies to `?forceRefresh=true` as well.
+On upstream error or rate limit exceeded, stale data up to `stale_ttl` seconds old is served.
 
 ## Error Codes
 

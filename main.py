@@ -7,7 +7,7 @@ from pathlib import Path
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse, Response
 
-from cache import CacheMiss, RedisCache
+from cache import CacheMiss, CacheStale, RedisCache
 from config import Config, RouteConfig, load
 from fetcher import UpstreamError, fetch
 from rate_limiter import RateLimiter
@@ -40,10 +40,12 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
 
         if not force_refresh:
             try:
-                value = await cache.get(key)
+                value = await cache.get(key, route.cache_ttl)
                 return PlainTextResponse(value, headers={"X-Cache": "HIT"})
             except CacheMiss:
                 pass
+            except CacheStale:
+                pass  # expired but present; fall through to re-fetch
             except Exception as e:
                 logger.warning("cache GET %r failed: %s — proceeding without cache", key, e)
 
@@ -51,8 +53,10 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
         if not allowed:
             logger.warning("rate limiter max_wait exceeded for %r (forceRefresh=%s), serving stale", key, force_refresh)
             try:
-                stale = await cache.get(key)
+                stale = await cache.get(key, route.cache_ttl)
                 return PlainTextResponse(stale, headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"})
+            except CacheStale as e:
+                return PlainTextResponse(e.value, headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": "rate-limited"})
             except CacheMiss:
                 pass
             return PlainTextResponse("rate limit exceeded and no cached value available", status_code=503)
@@ -63,9 +67,14 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
         except UpstreamError as e:
             logger.warning("upstream %r returned HTTP %d, serving stale", e.url, e.status_code)
             try:
-                stale = await cache.get(key)
+                stale = await cache.get(key, route.cache_ttl)
                 return PlainTextResponse(
                     stale,
+                    headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": f"upstream-{e.status_code}"},
+                )
+            except CacheStale as exc:
+                return PlainTextResponse(
+                    exc.value,
                     headers={"X-Cache": "STALE", "X-Cache-Stale-Reason": f"upstream-{e.status_code}"},
                 )
             except CacheMiss:
@@ -79,7 +88,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
             return PlainTextResponse("bad gateway: upstream fetch failed", status_code=502)
 
         try:
-            await cache.set(key, value, route.cache_ttl)
+            await cache.set(key, value, route.stale_ttl)
         except Exception as e:
             logger.warning("cache SET %r failed: %s", key, e)
 
@@ -101,8 +110,8 @@ def create_app(config: Config) -> FastAPI:
         logger.info("cachest starting — %d route(s) registered", len(config.routes))
         for r in config.routes:
             logger.info(
-                "  %s -> %s (TTL: %ss, fetch_interval: %ss, fetch_max_wait: %ss)",
-                r.path, r.url, r.cache_ttl, r.fetch_interval, r.fetch_max_wait,
+                "  %s -> %s (cache_ttl: %ss, stale_ttl: %ss, fetch_interval: %ss, fetch_max_wait: %ss)",
+                r.path, r.url, r.cache_ttl, r.stale_ttl, r.fetch_interval, r.fetch_max_wait,
             )
         yield
         await cache.close()

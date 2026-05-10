@@ -12,6 +12,7 @@ routes:
       label: "Yield"
       field: "dd"
     cache_ttl: 86400          # seconds (24h)
+    stale_ttl: 2592000        # seconds (30 days) — max age for stale fallback
     fetch_interval: 2         # min seconds between remote fetches
     fetch_max_wait: 4         # max queue wait before falling back to stale
 
@@ -19,5 +20,6 @@ routes:
     url: "https://someapi.com/price/{ticker}"
     # no extract block = endpoint returns plain text value
     cache_ttl: 300            # 5 minutes
+    stale_ttl: 2592000        # 30 days
     fetch_interval: 2
     fetch_max_wait: 4

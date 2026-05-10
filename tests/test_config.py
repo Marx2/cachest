@@ -32,3 +32,40 @@ def test_fetch_interval_defaults(tmp_path):
     cfg = load(f)
     assert cfg.routes[1].fetch_interval == 2.0
     assert cfg.routes[1].fetch_max_wait == 4.0
+
+
+def test_stale_ttl_explicit(tmp_path):
+    yaml = """
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+routes:
+  - path: /t/{id}
+    url: http://example.com/{id}
+    cache_ttl: 60
+    stale_ttl: 3600
+"""
+    f = tmp_path / "c.yaml"
+    f.write_text(yaml)
+    cfg = load(f)
+    assert cfg.routes[0].stale_ttl == 3600
+
+
+def test_stale_ttl_default(tmp_path):
+    yaml = """
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+routes:
+  - path: /t/{id}
+    url: http://example.com/{id}
+    cache_ttl: 60
+"""
+    f = tmp_path / "c.yaml"
+    f.write_text(yaml)
+    cfg = load(f)
+    assert cfg.routes[0].stale_ttl == 2592000

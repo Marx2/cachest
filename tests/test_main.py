@@ -14,6 +14,7 @@ def _make_config(**route_kwargs) -> Config:
         cache_ttl=60,
         fetch_interval=2.0,
         fetch_max_wait=4.0,
+        stale_ttl=2592000,
     )
     defaults.update(route_kwargs)
     route = RouteConfig(**defaults)
@@ -72,7 +73,7 @@ def test_rate_limiter_false_returns_stale(mock_cache, mock_fetch):
         app = create_app(cfg)
     stale_calls = 0
 
-    async def get_side_effect(key):
+    async def get_side_effect(key, cache_ttl=None):
         nonlocal stale_calls
         stale_calls += 1
         if stale_calls == 1:
@@ -113,7 +114,7 @@ def test_upstream_error_returns_stale(mock_cache, mock_fetch):
     mock_fetch.side_effect = UpstreamError("http://example.com/1", 429)
     stale_calls = 0
 
-    async def get_side_effect(key):
+    async def get_side_effect(key, cache_ttl=None):
         nonlocal stale_calls
         stale_calls += 1
         if stale_calls == 1:
@@ -157,3 +158,71 @@ def test_force_refresh_rate_limited_returns_stale(mock_cache, mock_fetch):
     assert resp.text == "stale_value"
     assert resp.headers["x-cache"] == "STALE"
     mock_fetch.assert_not_called()
+
+
+def test_stale_entry_triggers_refetch(mock_cache, mock_fetch):
+    """CacheStale on normal path → MISS, not HIT."""
+    from cache import CacheStale
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    mock_cache.get = AsyncMock(side_effect=CacheStale("test:1", "old_value"))
+    client = TestClient(app)
+    resp = client.get("/test/1")
+    assert resp.status_code == 200
+    assert resp.text == "result_value"
+    assert resp.headers["x-cache"] == "MISS"
+    mock_fetch.assert_called_once()
+
+
+def test_stale_entry_served_when_rate_limited(mock_cache, mock_fetch):
+    """Rate-limited + CacheStale → serve stale value."""
+    from cache import CacheStale
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache), \
+         patch("main.RateLimiter") as MockLimiter:
+        limiter_instance = MagicMock()
+        limiter_instance.acquire = AsyncMock(return_value=False)
+        MockLimiter.return_value = limiter_instance
+        app = create_app(cfg)
+    calls = 0
+
+    async def get_side_effect(key, cache_ttl=None):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise CacheMiss(key)
+        raise CacheStale(key, "old_value")
+
+    mock_cache.get = AsyncMock(side_effect=get_side_effect)
+    client = TestClient(app)
+    resp = client.get("/test/1")
+    assert resp.status_code == 200
+    assert resp.text == "old_value"
+    assert resp.headers["x-cache"] == "STALE"
+    mock_fetch.assert_not_called()
+
+
+def test_stale_entry_served_on_upstream_error(mock_cache, mock_fetch):
+    """Upstream error + CacheStale → serve stale value."""
+    from cache import CacheStale
+    from fetcher import UpstreamError
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    mock_fetch.side_effect = UpstreamError("http://example.com/1", 429)
+    calls = 0
+
+    async def get_side_effect(key, cache_ttl=None):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            raise CacheMiss(key)
+        raise CacheStale(key, "old_value")
+
+    mock_cache.get = AsyncMock(side_effect=get_side_effect)
+    client = TestClient(app)
+    resp = client.get("/test/1")
+    assert resp.status_code == 200
+    assert resp.text == "old_value"
+    assert resp.headers["x-cache"] == "STALE"
