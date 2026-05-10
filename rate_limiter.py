@@ -17,6 +17,7 @@ class RateLimiter:
                 return True
             if sleep > self._max_wait:
                 return False
-            await asyncio.sleep(sleep)
-            self._last_fetch = time.monotonic()
-            return True
+            self._last_fetch = time.monotonic() + sleep  # claim the slot now
+
+        await asyncio.sleep(sleep)  # outside the lock
+        return True
