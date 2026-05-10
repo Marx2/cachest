@@ -28,12 +28,16 @@ routes:
       selector: "dl.metrics-list .metric-row"   # CSS selector for rows
       label: "Yield"                             # <dt> text to match
       field: "dd"                                # sibling element to return
-    cache_ttl: 86400     # seconds (24h)
+    cache_ttl: 86400       # seconds (24h)
+    fetch_interval: 2      # min seconds between remote fetches (default: 2)
+    fetch_max_wait: 4      # max seconds to queue before falling back to stale (default: 4)
 
   - path: /price/{ticker}
     url: "https://someapi.com/price/{ticker}"
     # no extract block = return plain response body as-is
-    cache_ttl: 300       # 5 minutes
+    cache_ttl: 300
+    fetch_interval: 2
+    fetch_max_wait: 4
 ```
 
 Path params use `{name}` syntax and are substituted into the URL template.
@@ -61,14 +65,23 @@ curl http://localhost:8080/dy/VZ
 |--------|---------|
 | `X-Cache: MISS` | First fetch (value stored in Redis) |
 | `X-Cache: HIT` | Served from Redis cache |
-| `X-Cache: STALE` | Upstream returned 429 (rate limited), stale value returned |
+| `X-Cache: STALE` | Upstream error (403/429/502) or rate limit exceeded — stale value returned |
+
+`X-Cache-Stale-Reason` header gives the specific cause (`rate-limited`, `upstream-429`, etc.).
+
+## Rate Limiting
+
+Each route enforces a minimum interval between upstream fetches (`fetch_interval`, default 2s).
+If a request arrives before the interval has elapsed, it waits up to `fetch_max_wait` seconds
+(default 4s). If the wait would exceed `fetch_max_wait`, the latest cached value is returned
+immediately (even if days old). This applies to `?forceRefresh=true` as well.
 
 ## Error Codes
 
 | Code | Meaning |
 |------|---------|
-| `502` | Upstream fetch failed (network error, 4xx/5xx from remote) |
-| `503` | Rate limited by upstream AND no cached value available |
+| `502` | Upstream fetch failed (network/other error) |
+| `503` | Upstream error or rate limit exceeded AND no cached value available |
 | `404` | Route not configured in config.yaml |
 
 ## Local Dev Without Docker
