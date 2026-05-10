@@ -3,18 +3,23 @@ from bs4 import BeautifulSoup
 from config import ExtractConfig
 
 
-class RateLimitedError(Exception):
-    def __init__(self, url: str):
+class UpstreamError(Exception):
+    def __init__(self, url: str, status_code: int):
         self.url = url
-        super().__init__(f"rate limited by {url!r} (HTTP 429)")
+        self.status_code = status_code
+        super().__init__(f"upstream {url!r} returned HTTP {status_code}")
+
+
+# Keep as alias so any existing imports don't break during transition
+RateLimitedError = UpstreamError
 
 
 async def fetch(url: str, extract: ExtractConfig) -> str:
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
         resp = await client.get(url)
 
-    if resp.status_code == 429:
-        raise RateLimitedError(url)
+    if resp.status_code in (403, 429, 502):
+        raise UpstreamError(url, resp.status_code)
     resp.raise_for_status()
 
     if not extract.selector:
