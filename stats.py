@@ -8,6 +8,7 @@ class RouteStats:
     hits: int = 0
     misses: int = 0
     stale: int = 0
+    errors: int = 0
 
 
 _registry: dict[str, RouteStats] = {}
@@ -29,6 +30,8 @@ def record(path: str, x_cache: str) -> None:
         s.misses += 1
     elif tag == "STALE":
         s.stale += 1
+    elif tag == "ERROR":
+        s.errors += 1
 
 
 def all_routes() -> dict[str, RouteStats]:

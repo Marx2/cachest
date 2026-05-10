@@ -66,6 +66,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
                 return _respond(route.path, e.value, "STALE", **{"X-Cache-Stale-Reason": "rate-limited"})
             except CacheMiss:
                 pass
+            stats.record(route.path, "ERROR")
             return PlainTextResponse("rate limit exceeded and no cached value available", status_code=503)
 
         url = _build_url(route.url, path_params)
@@ -80,12 +81,14 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
                 return _respond(route.path, exc.value, "STALE", **{"X-Cache-Stale-Reason": f"upstream-{e.status_code}"})
             except CacheMiss:
                 pass
+            stats.record(route.path, "ERROR")
             return PlainTextResponse(
                 f"upstream returned {e.status_code} and no cached value available",
                 status_code=503,
             )
         except Exception as e:
             logger.error("fetch %r failed: %s", url, e)
+            stats.record(route.path, "ERROR")
             return PlainTextResponse("bad gateway: upstream fetch failed", status_code=502)
 
         try:
@@ -146,6 +149,7 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
         <span class="pill pill-hit">HIT {s.hits}</span>
         <span class="pill pill-miss">MISS {s.misses}</span>
         <span class="pill pill-stale">STALE {s.stale}</span>
+        <span class="pill pill-error">ERROR {s.errors}</span>
       </div>
       <div class="redis-keys">Redis keys: {total_keys}</div>
       <div class="chart">{''.join(bars_html)}
@@ -175,6 +179,7 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
     .pill-hit {{ background: #14532d; color: #22c55e; }}
     .pill-miss {{ background: #1e3a5f; color: #3b82f6; }}
     .pill-stale {{ background: #451a03; color: #f59e0b; }}
+    .pill-error {{ background: #450a0a; color: #ef4444; }}
     .redis-keys {{ font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.75rem; }}
     .chart {{ display: flex; align-items: flex-end; gap: 2px; height: 60px; padding-bottom: 18px; position: relative; }}
     .bar-wrap {{ display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }}
