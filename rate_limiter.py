@@ -17,6 +17,8 @@ class RateLimiter:
                 return True
             if sleep > self._max_wait:
                 return False
+            # Claim the slot now (before releasing lock) so concurrent waiters see the next-available time.
+            # Note: if the subsequent fetch fails, the slot remains consumed; the next caller still waits.
             self._last_fetch = time.monotonic() + sleep  # claim the slot now
 
         await asyncio.sleep(sleep)  # outside the lock

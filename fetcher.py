@@ -10,8 +10,8 @@ class UpstreamError(Exception):
         super().__init__(f"upstream {url!r} returned HTTP {status_code}")
 
 
-# Keep as alias so any existing imports don't break during transition
-RateLimitedError = UpstreamError
+class RateLimitedError(UpstreamError):
+    pass
 
 
 async def fetch(url: str, extract: ExtractConfig) -> str:

@@ -139,3 +139,21 @@ def test_upstream_error_no_stale_returns_503(mock_cache, mock_fetch):
     client = TestClient(app)
     resp = client.get("/test/1")
     assert resp.status_code == 503
+
+
+def test_force_refresh_rate_limited_returns_stale(mock_cache, mock_fetch):
+    """forceRefresh=true is still subject to rate limiting; stale is served if acquire() is False."""
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache), \
+         patch("main.RateLimiter") as MockLimiter:
+        limiter_instance = MagicMock()
+        limiter_instance.acquire = AsyncMock(return_value=False)
+        MockLimiter.return_value = limiter_instance
+        app = create_app(cfg)
+    mock_cache.get = AsyncMock(return_value="stale_value")
+    client = TestClient(app)
+    resp = client.get("/test/1?forceRefresh=true")
+    assert resp.status_code == 200
+    assert resp.text == "stale_value"
+    assert resp.headers["x-cache"] == "STALE"
+    mock_fetch.assert_not_called()

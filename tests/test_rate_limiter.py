@@ -42,3 +42,21 @@ async def test_acquire_true_after_interval_has_passed():
     await asyncio.sleep(0.1)  # wait longer than interval
     result = await limiter.acquire()
     assert result is True
+
+
+@pytest.mark.asyncio
+async def test_concurrent_callers_get_distinct_slots():
+    """Two concurrent callers should both eventually return True, spaced by the interval."""
+    limiter = RateLimiter(interval=0.1, max_wait=1.0)
+    results = []
+
+    async def call():
+        result = await limiter.acquire()
+        results.append(result)
+
+    start = asyncio.get_running_loop().time()
+    await asyncio.gather(call(), call())
+    elapsed = asyncio.get_running_loop().time() - start
+
+    assert results == [True, True]
+    assert elapsed >= 0.05  # second caller had to wait
