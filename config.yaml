@@ -12,8 +12,12 @@ routes:
       label: "Yield"
       field: "dd"
     cache_ttl: 86400          # seconds (24h)
+    fetch_interval: 2         # min seconds between remote fetches
+    fetch_max_wait: 4         # max queue wait before falling back to stale
 
   - path: /price/{ticker}
     url: "https://someapi.com/price/{ticker}"
     # no extract block = endpoint returns plain text value
     cache_ttl: 300            # 5 minutes
+    fetch_interval: 2
+    fetch_max_wait: 4
