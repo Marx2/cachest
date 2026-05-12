@@ -1,0 +1,3976 @@
+{
+  "directed": false,
+  "multigraph": false,
+  "graph": {
+    "hyperedges": [
+      {
+        "id": "request_handling_flow",
+        "label": "Per-Request Cache/Rate-Limit/Fetch Flow",
+        "nodes": [
+          "main_handler",
+          "cache_rediscache_get",
+          "rate_limiter_ratelimiter_acquire",
+          "fetcher_fetch",
+          "cache_rediscache_set",
+          "main__respond"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "main.py"
+      },
+      {
+        "id": "stale_fallback_triggers",
+        "label": "Stale Fallback Triggers (rate-limit or upstream error)",
+        "nodes": [
+          "rate_limiter_ratelimiter_acquire",
+          "fetcher_upstreamerror",
+          "cache_cachestale",
+          "main_handler"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "main.py"
+      },
+      {
+        "id": "stats_persistence_flow",
+        "label": "Stats In-Process + Redis Persistence Flow",
+        "nodes": [
+          "stats_record",
+          "stats__persist",
+          "stats_load_from_redis",
+          "stats_routestats"
+        ],
+        "relation": "participate_in",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "stats.py"
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "label": "config.py",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L1",
+      "id": "config_py",
+      "community": 0,
+      "norm_label": "config.py"
+    },
+    {
+      "label": "ExtractConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L7",
+      "id": "cachest_config_extractconfig",
+      "community": 1,
+      "norm_label": "extractconfig"
+    },
+    {
+      "label": "RouteConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L14",
+      "id": "cachest_config_routeconfig",
+      "community": 0,
+      "norm_label": "routeconfig"
+    },
+    {
+      "label": "RedisConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L25",
+      "id": "cachest_config_redisconfig",
+      "community": 0,
+      "norm_label": "redisconfig"
+    },
+    {
+      "label": "Config",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L33",
+      "id": "cachest_config_config",
+      "community": 0,
+      "norm_label": "config"
+    },
+    {
+      "label": "load()",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "L38",
+      "id": "cachest_config_load",
+      "community": 1,
+      "norm_label": "load()"
+    },
+    {
+      "label": "rate_limiter.py",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "L1",
+      "id": "rate_limiter_py",
+      "community": 5,
+      "norm_label": "rate_limiter.py"
+    },
+    {
+      "label": "RateLimiter",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "L5",
+      "id": "cachest_rate_limiter_ratelimiter",
+      "community": 5,
+      "norm_label": "ratelimiter"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "L6",
+      "id": "cachest_rate_limiter_ratelimiter_init",
+      "community": 5,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": ".acquire()",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "L12",
+      "id": "cachest_rate_limiter_ratelimiter_acquire",
+      "community": 5,
+      "norm_label": ".acquire()"
+    },
+    {
+      "label": "cache.py",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L1",
+      "id": "cache_py",
+      "community": 6,
+      "norm_label": "cache.py"
+    },
+    {
+      "label": "CacheMiss",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L5",
+      "id": "cachest_cache_cachemiss",
+      "community": 6,
+      "norm_label": "cachemiss"
+    },
+    {
+      "label": "Exception",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": "",
+      "id": "exception",
+      "community": 6,
+      "norm_label": "exception"
+    },
+    {
+      "label": "CacheStale",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L9",
+      "id": "cachest_cache_cachestale",
+      "community": 6,
+      "norm_label": "cachestale"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L10",
+      "id": "cachest_cache_cachestale_init",
+      "community": 6,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": "RedisCache",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L15",
+      "id": "cachest_cache_rediscache",
+      "community": 6,
+      "norm_label": "rediscache"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L16",
+      "id": "cachest_cache_rediscache_init",
+      "community": 6,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": ".get()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L22",
+      "id": "cachest_cache_rediscache_get",
+      "community": 6,
+      "norm_label": ".get()"
+    },
+    {
+      "label": ".set()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L35",
+      "id": "cachest_cache_rediscache_set",
+      "community": 2,
+      "norm_label": ".set()"
+    },
+    {
+      "label": ".scan_prefix()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L39",
+      "id": "cachest_cache_rediscache_scan_prefix",
+      "community": 6,
+      "norm_label": ".scan_prefix()"
+    },
+    {
+      "label": ".close()",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "L46",
+      "id": "cachest_cache_rediscache_close",
+      "community": 6,
+      "norm_label": ".close()"
+    },
+    {
+      "label": "Return raw stored values for all keys matching prefix:*",
+      "file_type": "rationale",
+      "source_file": "cache.py",
+      "source_location": "L40",
+      "id": "cachest_cache_rationale_40",
+      "community": 6,
+      "norm_label": "return raw stored values for all keys matching prefix:*"
+    },
+    {
+      "label": "stats.py",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L1",
+      "id": "stats_py",
+      "community": 9,
+      "norm_label": "stats.py"
+    },
+    {
+      "label": "RouteStats",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L9",
+      "id": "cachest_stats_routestats",
+      "community": 9,
+      "norm_label": "routestats"
+    },
+    {
+      "label": "init()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L21",
+      "id": "cachest_stats_init",
+      "community": 9,
+      "norm_label": "init()"
+    },
+    {
+      "label": "get()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L26",
+      "id": "cachest_stats_get",
+      "community": 9,
+      "norm_label": "get()"
+    },
+    {
+      "label": "record()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L32",
+      "id": "cachest_stats_record",
+      "community": 9,
+      "norm_label": "record()"
+    },
+    {
+      "label": "all_routes()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L58",
+      "id": "cachest_stats_all_routes",
+      "community": 9,
+      "norm_label": "all_routes()"
+    },
+    {
+      "label": "load_from_redis()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L62",
+      "id": "cachest_stats_load_from_redis",
+      "community": 9,
+      "norm_label": "load_from_redis()"
+    },
+    {
+      "label": "_persist()",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "L80",
+      "id": "cachest_stats_persist",
+      "community": 9,
+      "norm_label": "_persist()"
+    },
+    {
+      "label": "main.py",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L1",
+      "id": "main_py",
+      "community": 0,
+      "norm_label": "main.py"
+    },
+    {
+      "label": "_cache_key()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L23",
+      "id": "cachest_main_cache_key",
+      "community": 0,
+      "norm_label": "_cache_key()"
+    },
+    {
+      "label": "_build_url()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L30",
+      "id": "cachest_main_build_url",
+      "community": 0,
+      "norm_label": "_build_url()"
+    },
+    {
+      "label": "_respond()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L37",
+      "id": "cachest_main_respond",
+      "community": 0,
+      "norm_label": "_respond()"
+    },
+    {
+      "label": "make_handler()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L42",
+      "id": "cachest_main_make_handler",
+      "community": 0,
+      "norm_label": "make_handler()"
+    },
+    {
+      "label": "_render_stats()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L104",
+      "id": "cachest_main_render_stats",
+      "community": 0,
+      "norm_label": "_render_stats()"
+    },
+    {
+      "label": "create_app()",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "L199",
+      "id": "cachest_main_create_app",
+      "community": 0,
+      "norm_label": "create_app()"
+    },
+    {
+      "label": "/dy/{ticker} + {\"ticker\": \"AAPL\"} \u2192 \"dy:AAPL\"",
+      "file_type": "rationale",
+      "source_file": "main.py",
+      "source_location": "L24",
+      "id": "cachest_main_rationale_24",
+      "community": 0,
+      "norm_label": "/dy/{ticker} + {\"ticker\": \"aapl\"} \u2192 \"dy:aapl\""
+    },
+    {
+      "label": "fetcher.py",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L1",
+      "id": "fetcher_py",
+      "community": 1,
+      "norm_label": "fetcher.py"
+    },
+    {
+      "label": "UpstreamError",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L6",
+      "id": "cachest_fetcher_upstreamerror",
+      "community": 1,
+      "norm_label": "upstreamerror"
+    },
+    {
+      "label": ".__init__()",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L7",
+      "id": "cachest_fetcher_upstreamerror_init",
+      "community": 1,
+      "norm_label": ".__init__()"
+    },
+    {
+      "label": "RateLimitedError",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L13",
+      "id": "cachest_fetcher_ratelimitederror",
+      "community": 1,
+      "norm_label": "ratelimitederror"
+    },
+    {
+      "label": "fetch()",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L17",
+      "id": "cachest_fetcher_fetch",
+      "community": 1,
+      "norm_label": "fetch()"
+    },
+    {
+      "label": "_extract_from_html()",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "L31",
+      "id": "cachest_fetcher_extract_from_html",
+      "community": 1,
+      "norm_label": "_extract_from_html()"
+    },
+    {
+      "label": "test_stats.py",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L1",
+      "id": "tests_test_stats_py",
+      "community": 2,
+      "norm_label": "test_stats.py"
+    },
+    {
+      "label": "setup_function()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L9",
+      "id": "tests_test_stats_setup_function",
+      "community": 2,
+      "norm_label": "setup_function()"
+    },
+    {
+      "label": "test_record_hit()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L14",
+      "id": "tests_test_stats_test_record_hit",
+      "community": 2,
+      "norm_label": "test_record_hit()"
+    },
+    {
+      "label": "test_record_miss()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L23",
+      "id": "tests_test_stats_test_record_miss",
+      "community": 2,
+      "norm_label": "test_record_miss()"
+    },
+    {
+      "label": "test_record_stale()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L32",
+      "id": "tests_test_stats_test_record_stale",
+      "community": 2,
+      "norm_label": "test_record_stale()"
+    },
+    {
+      "label": "test_record_error()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L41",
+      "id": "tests_test_stats_test_record_error",
+      "community": 2,
+      "norm_label": "test_record_error()"
+    },
+    {
+      "label": "test_record_accumulates()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L49",
+      "id": "tests_test_stats_test_record_accumulates",
+      "community": 2,
+      "norm_label": "test_record_accumulates()"
+    },
+    {
+      "label": "test_record_multiple_routes()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L63",
+      "id": "tests_test_stats_test_record_multiple_routes",
+      "community": 2,
+      "norm_label": "test_record_multiple_routes()"
+    },
+    {
+      "label": "test_all_routes_snapshot()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L71",
+      "id": "tests_test_stats_test_all_routes_snapshot",
+      "community": 2,
+      "norm_label": "test_all_routes_snapshot()"
+    },
+    {
+      "label": "test_all_routes_is_copy()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L80",
+      "id": "tests_test_stats_test_all_routes_is_copy",
+      "community": 2,
+      "norm_label": "test_all_routes_is_copy()"
+    },
+    {
+      "label": "test_unknown_x_cache_increments_total_only()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L87",
+      "id": "tests_test_stats_test_unknown_x_cache_increments_total_only",
+      "community": 2,
+      "norm_label": "test_unknown_x_cache_increments_total_only()"
+    },
+    {
+      "label": "test_get_creates_empty()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L96",
+      "id": "tests_test_stats_test_get_creates_empty",
+      "community": 2,
+      "norm_label": "test_get_creates_empty()"
+    },
+    {
+      "label": "test_record_no_redis_write_when_client_not_set()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L102",
+      "id": "tests_test_stats_test_record_no_redis_write_when_client_not_set",
+      "community": 2,
+      "norm_label": "test_record_no_redis_write_when_client_not_set()"
+    },
+    {
+      "label": "test_record_schedules_redis_write_when_client_set()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L108",
+      "id": "tests_test_stats_test_record_schedules_redis_write_when_client_set",
+      "community": 2,
+      "norm_label": "test_record_schedules_redis_write_when_client_set()"
+    },
+    {
+      "label": "test_load_from_redis_pre_populates_registry()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L127",
+      "id": "tests_test_stats_test_load_from_redis_pre_populates_registry",
+      "community": 2,
+      "norm_label": "test_load_from_redis_pre_populates_registry()"
+    },
+    {
+      "label": "test_persist_failure_is_silent()",
+      "file_type": "code",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L152",
+      "id": "tests_test_stats_test_persist_failure_is_silent",
+      "community": 2,
+      "norm_label": "test_persist_failure_is_silent()"
+    },
+    {
+      "label": "test_config.py",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L1",
+      "id": "tests_test_config_py",
+      "community": 1,
+      "norm_label": "test_config.py"
+    },
+    {
+      "label": "test_fetch_interval_parsed()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L22",
+      "id": "tests_test_config_test_fetch_interval_parsed",
+      "community": 1,
+      "norm_label": "test_fetch_interval_parsed()"
+    },
+    {
+      "label": "test_fetch_interval_defaults()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L29",
+      "id": "tests_test_config_test_fetch_interval_defaults",
+      "community": 1,
+      "norm_label": "test_fetch_interval_defaults()"
+    },
+    {
+      "label": "test_stale_ttl_explicit()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L37",
+      "id": "tests_test_config_test_stale_ttl_explicit",
+      "community": 1,
+      "norm_label": "test_stale_ttl_explicit()"
+    },
+    {
+      "label": "test_stale_ttl_default()",
+      "file_type": "code",
+      "source_file": "tests/test_config.py",
+      "source_location": "L56",
+      "id": "tests_test_config_test_stale_ttl_default",
+      "community": 1,
+      "norm_label": "test_stale_ttl_default()"
+    },
+    {
+      "label": "test_rate_limiter.py",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L1",
+      "id": "tests_test_rate_limiter_py",
+      "community": 5,
+      "norm_label": "test_rate_limiter.py"
+    },
+    {
+      "label": "test_first_acquire_returns_true()",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L7",
+      "id": "tests_test_rate_limiter_test_first_acquire_returns_true",
+      "community": 5,
+      "norm_label": "test_first_acquire_returns_true()"
+    },
+    {
+      "label": "test_immediate_second_acquire_waits_and_returns_true()",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L14",
+      "id": "tests_test_rate_limiter_test_immediate_second_acquire_waits_and_returns_true",
+      "community": 5,
+      "norm_label": "test_immediate_second_acquire_waits_and_returns_true()"
+    },
+    {
+      "label": "test_acquire_returns_false_when_wait_exceeds_max()",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L26",
+      "id": "tests_test_rate_limiter_test_acquire_returns_false_when_wait_exceeds_max",
+      "community": 5,
+      "norm_label": "test_acquire_returns_false_when_wait_exceeds_max()"
+    },
+    {
+      "label": "test_acquire_true_after_interval_has_passed()",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L38",
+      "id": "tests_test_rate_limiter_test_acquire_true_after_interval_has_passed",
+      "community": 5,
+      "norm_label": "test_acquire_true_after_interval_has_passed()"
+    },
+    {
+      "label": "test_concurrent_callers_get_distinct_slots()",
+      "file_type": "code",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L48",
+      "id": "tests_test_rate_limiter_test_concurrent_callers_get_distinct_slots",
+      "community": 5,
+      "norm_label": "test_concurrent_callers_get_distinct_slots()"
+    },
+    {
+      "label": "Second call within interval should sleep and return True if sleep <= max_wait.",
+      "file_type": "rationale",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L15",
+      "id": "tests_test_rate_limiter_rationale_15",
+      "community": 5,
+      "norm_label": "second call within interval should sleep and return true if sleep <= max_wait."
+    },
+    {
+      "label": "If required sleep > max_wait, acquire returns False immediately.",
+      "file_type": "rationale",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L27",
+      "id": "tests_test_rate_limiter_rationale_27",
+      "community": 5,
+      "norm_label": "if required sleep > max_wait, acquire returns false immediately."
+    },
+    {
+      "label": "After enough time passes, acquire returns True without sleeping.",
+      "file_type": "rationale",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L39",
+      "id": "tests_test_rate_limiter_rationale_39",
+      "community": 5,
+      "norm_label": "after enough time passes, acquire returns true without sleeping."
+    },
+    {
+      "label": "Two concurrent callers should both eventually return True, spaced by the interva",
+      "file_type": "rationale",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L49",
+      "id": "tests_test_rate_limiter_rationale_49",
+      "community": 5,
+      "norm_label": "two concurrent callers should both eventually return true, spaced by the interva"
+    },
+    {
+      "label": "test_fetcher.py",
+      "file_type": "code",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L1",
+      "id": "tests_test_fetcher_py",
+      "community": 1,
+      "norm_label": "test_fetcher.py"
+    },
+    {
+      "label": "test_fetch_raises_upstream_error_on_429()",
+      "file_type": "code",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L10",
+      "id": "tests_test_fetcher_test_fetch_raises_upstream_error_on_429",
+      "community": 1,
+      "norm_label": "test_fetch_raises_upstream_error_on_429()"
+    },
+    {
+      "label": "test_fetch_raises_upstream_error_on_403()",
+      "file_type": "code",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L19",
+      "id": "tests_test_fetcher_test_fetch_raises_upstream_error_on_403",
+      "community": 1,
+      "norm_label": "test_fetch_raises_upstream_error_on_403()"
+    },
+    {
+      "label": "test_fetch_raises_upstream_error_on_502()",
+      "file_type": "code",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L28",
+      "id": "tests_test_fetcher_test_fetch_raises_upstream_error_on_502",
+      "community": 1,
+      "norm_label": "test_fetch_raises_upstream_error_on_502()"
+    },
+    {
+      "label": "test_fetch_returns_text_on_200()",
+      "file_type": "code",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L37",
+      "id": "tests_test_fetcher_test_fetch_returns_text_on_200",
+      "community": 1,
+      "norm_label": "test_fetch_returns_text_on_200()"
+    },
+    {
+      "label": "test_main.py",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L1",
+      "id": "tests_test_main_py",
+      "community": 0,
+      "norm_label": "test_main.py"
+    },
+    {
+      "label": "_make_config()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L10",
+      "id": "tests_test_main_make_config",
+      "community": 0,
+      "norm_label": "_make_config()"
+    },
+    {
+      "label": "mock_cache()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L25",
+      "id": "tests_test_main_mock_cache",
+      "community": 6,
+      "norm_label": "mock_cache()"
+    },
+    {
+      "label": "mock_fetch()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L40",
+      "id": "tests_test_main_mock_fetch",
+      "community": 0,
+      "norm_label": "mock_fetch()"
+    },
+    {
+      "label": "test_cache_hit_skips_fetch()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L46",
+      "id": "tests_test_main_test_cache_hit_skips_fetch",
+      "community": 0,
+      "norm_label": "test_cache_hit_skips_fetch()"
+    },
+    {
+      "label": "test_cache_miss_fetches_and_stores()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L59",
+      "id": "tests_test_main_test_cache_miss_fetches_and_stores",
+      "community": 0,
+      "norm_label": "test_cache_miss_fetches_and_stores()"
+    },
+    {
+      "label": "test_rate_limiter_false_returns_stale()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L71",
+      "id": "tests_test_main_test_rate_limiter_false_returns_stale",
+      "community": 0,
+      "norm_label": "test_rate_limiter_false_returns_stale()"
+    },
+    {
+      "label": "test_rate_limiter_false_no_stale_returns_503()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L98",
+      "id": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "community": 0,
+      "norm_label": "test_rate_limiter_false_no_stale_returns_503()"
+    },
+    {
+      "label": "test_upstream_error_returns_stale()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L114",
+      "id": "tests_test_main_test_upstream_error_returns_stale",
+      "community": 0,
+      "norm_label": "test_upstream_error_returns_stale()"
+    },
+    {
+      "label": "test_upstream_error_no_stale_returns_503()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L138",
+      "id": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "community": 0,
+      "norm_label": "test_upstream_error_no_stale_returns_503()"
+    },
+    {
+      "label": "test_force_refresh_rate_limited_returns_stale()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L151",
+      "id": "tests_test_main_test_force_refresh_rate_limited_returns_stale",
+      "community": 0,
+      "norm_label": "test_force_refresh_rate_limited_returns_stale()"
+    },
+    {
+      "label": "test_stale_entry_triggers_refetch()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L169",
+      "id": "tests_test_main_test_stale_entry_triggers_refetch",
+      "community": 0,
+      "norm_label": "test_stale_entry_triggers_refetch()"
+    },
+    {
+      "label": "test_stale_entry_served_when_rate_limited()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L184",
+      "id": "tests_test_main_test_stale_entry_served_when_rate_limited",
+      "community": 0,
+      "norm_label": "test_stale_entry_served_when_rate_limited()"
+    },
+    {
+      "label": "test_stale_entry_served_on_upstream_error()",
+      "file_type": "code",
+      "source_file": "tests/test_main.py",
+      "source_location": "L212",
+      "id": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "community": 0,
+      "norm_label": "test_stale_entry_served_on_upstream_error()"
+    },
+    {
+      "label": "When acquire() returns False, serve stale from cache.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L72",
+      "id": "tests_test_main_rationale_72",
+      "community": 0,
+      "norm_label": "when acquire() returns false, serve stale from cache."
+    },
+    {
+      "label": "When acquire() returns False and no stale exists, return 503.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L99",
+      "id": "tests_test_main_rationale_99",
+      "community": 0,
+      "norm_label": "when acquire() returns false and no stale exists, return 503."
+    },
+    {
+      "label": "On UpstreamError, serve stale from cache.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L115",
+      "id": "tests_test_main_rationale_115",
+      "community": 0,
+      "norm_label": "on upstreamerror, serve stale from cache."
+    },
+    {
+      "label": "On UpstreamError with no stale, return 503.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L139",
+      "id": "tests_test_main_rationale_139",
+      "community": 0,
+      "norm_label": "on upstreamerror with no stale, return 503."
+    },
+    {
+      "label": "forceRefresh=true is still subject to rate limiting; stale is served if acquire(",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L152",
+      "id": "tests_test_main_rationale_152",
+      "community": 0,
+      "norm_label": "forcerefresh=true is still subject to rate limiting; stale is served if acquire("
+    },
+    {
+      "label": "CacheStale on normal path \u2192 MISS, not HIT.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L170",
+      "id": "tests_test_main_rationale_170",
+      "community": 0,
+      "norm_label": "cachestale on normal path \u2192 miss, not hit."
+    },
+    {
+      "label": "Rate-limited + CacheStale \u2192 serve stale value.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L185",
+      "id": "tests_test_main_rationale_185",
+      "community": 0,
+      "norm_label": "rate-limited + cachestale \u2192 serve stale value."
+    },
+    {
+      "label": "Upstream error + CacheStale \u2192 serve stale value.",
+      "file_type": "rationale",
+      "source_file": "tests/test_main.py",
+      "source_location": "L213",
+      "id": "tests_test_main_rationale_213",
+      "community": 0,
+      "norm_label": "upstream error + cachestale \u2192 serve stale value."
+    },
+    {
+      "label": "test_cache.py",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L1",
+      "id": "tests_test_cache_py",
+      "community": 8,
+      "norm_label": "test_cache.py"
+    },
+    {
+      "label": "redis_mock()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L8",
+      "id": "tests_test_cache_redis_mock",
+      "community": 8,
+      "norm_label": "redis_mock()"
+    },
+    {
+      "label": "cache()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L17",
+      "id": "tests_test_cache_cache",
+      "community": 8,
+      "norm_label": "cache()"
+    },
+    {
+      "label": "test_get_miss()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L23",
+      "id": "tests_test_cache_test_get_miss",
+      "community": 8,
+      "norm_label": "test_get_miss()"
+    },
+    {
+      "label": "test_get_fresh()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L29",
+      "id": "tests_test_cache_test_get_fresh",
+      "community": 8,
+      "norm_label": "test_get_fresh()"
+    },
+    {
+      "label": "test_get_stale()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L35",
+      "id": "tests_test_cache_test_get_stale",
+      "community": 8,
+      "norm_label": "test_get_stale()"
+    },
+    {
+      "label": "test_get_value_with_pipe()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L43",
+      "id": "tests_test_cache_test_get_value_with_pipe",
+      "community": 8,
+      "norm_label": "test_get_value_with_pipe()"
+    },
+    {
+      "label": "test_get_legacy_entry_treated_as_miss()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L49",
+      "id": "tests_test_cache_test_get_legacy_entry_treated_as_miss",
+      "community": 8,
+      "norm_label": "test_get_legacy_entry_treated_as_miss()"
+    },
+    {
+      "label": "test_set_stores_stamped_value()",
+      "file_type": "code",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L55",
+      "id": "tests_test_cache_test_set_stores_stamped_value",
+      "community": 8,
+      "norm_label": "test_set_stores_stamped_value()"
+    },
+    {
+      "label": "ExtractConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "line 7",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "config_extractconfig",
+      "community": 3,
+      "norm_label": "extractconfig"
+    },
+    {
+      "label": "RouteConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "line 14",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "config_routeconfig",
+      "community": 3,
+      "norm_label": "routeconfig"
+    },
+    {
+      "label": "RedisConfig",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "line 25",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "config_redisconfig",
+      "community": 3,
+      "norm_label": "redisconfig"
+    },
+    {
+      "label": "Config",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "line 33",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "config_config",
+      "community": 3,
+      "norm_label": "config"
+    },
+    {
+      "label": "load",
+      "file_type": "code",
+      "source_file": "config.py",
+      "source_location": "line 38",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "config_load",
+      "community": 3,
+      "norm_label": "load"
+    },
+    {
+      "label": "RateLimiter",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "rate_limiter_ratelimiter",
+      "community": 3,
+      "norm_label": "ratelimiter"
+    },
+    {
+      "label": "RateLimiter.acquire",
+      "file_type": "code",
+      "source_file": "rate_limiter.py",
+      "source_location": "line 12",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "rate_limiter_ratelimiter_acquire",
+      "community": 4,
+      "norm_label": "ratelimiter.acquire"
+    },
+    {
+      "label": "CacheMiss",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 5",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_cachemiss",
+      "community": 4,
+      "norm_label": "cachemiss"
+    },
+    {
+      "label": "CacheStale",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 9",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_cachestale",
+      "community": 4,
+      "norm_label": "cachestale"
+    },
+    {
+      "label": "RedisCache",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 15",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_rediscache",
+      "community": 3,
+      "norm_label": "rediscache"
+    },
+    {
+      "label": "RedisCache.get",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 22",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_rediscache_get",
+      "community": 4,
+      "norm_label": "rediscache.get"
+    },
+    {
+      "label": "RedisCache.set",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 35",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_rediscache_set",
+      "community": 4,
+      "norm_label": "rediscache.set"
+    },
+    {
+      "label": "RedisCache.scan_prefix",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 39",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_rediscache_scan_prefix",
+      "community": 7,
+      "norm_label": "rediscache.scan_prefix"
+    },
+    {
+      "label": "RedisCache.close",
+      "file_type": "code",
+      "source_file": "cache.py",
+      "source_location": "line 46",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "cache_rediscache_close",
+      "community": 7,
+      "norm_label": "rediscache.close"
+    },
+    {
+      "label": "RouteStats",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 9",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_routestats",
+      "community": 7,
+      "norm_label": "routestats"
+    },
+    {
+      "label": "stats.init",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 21",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_init",
+      "community": 7,
+      "norm_label": "stats.init"
+    },
+    {
+      "label": "stats.get",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 26",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_get",
+      "community": 7,
+      "norm_label": "stats.get"
+    },
+    {
+      "label": "stats.record",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 32",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_record",
+      "community": 4,
+      "norm_label": "stats.record"
+    },
+    {
+      "label": "stats.all_routes",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 58",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_all_routes",
+      "community": 7,
+      "norm_label": "stats.all_routes"
+    },
+    {
+      "label": "stats.load_from_redis",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 62",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats_load_from_redis",
+      "community": 7,
+      "norm_label": "stats.load_from_redis"
+    },
+    {
+      "label": "stats._persist",
+      "file_type": "code",
+      "source_file": "stats.py",
+      "source_location": "line 80",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "stats__persist",
+      "community": 4,
+      "norm_label": "stats._persist"
+    },
+    {
+      "label": "UpstreamError",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "line 6",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "fetcher_upstreamerror",
+      "community": 3,
+      "norm_label": "upstreamerror"
+    },
+    {
+      "label": "RateLimitedError",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "line 13",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "fetcher_ratelimitederror",
+      "community": 3,
+      "norm_label": "ratelimitederror"
+    },
+    {
+      "label": "fetch",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "line 17",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "fetcher_fetch",
+      "community": 3,
+      "norm_label": "fetch"
+    },
+    {
+      "label": "_extract_from_html",
+      "file_type": "code",
+      "source_file": "fetcher.py",
+      "source_location": "line 31",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "fetcher__extract_from_html",
+      "community": 3,
+      "norm_label": "_extract_from_html"
+    },
+    {
+      "label": "_cache_key",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 23",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main__cache_key",
+      "community": 4,
+      "norm_label": "_cache_key"
+    },
+    {
+      "label": "_build_url",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 30",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main__build_url",
+      "community": 4,
+      "norm_label": "_build_url"
+    },
+    {
+      "label": "_respond",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 37",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main__respond",
+      "community": 4,
+      "norm_label": "_respond"
+    },
+    {
+      "label": "make_handler",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 42",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main_make_handler",
+      "community": 3,
+      "norm_label": "make_handler"
+    },
+    {
+      "label": "handler (inner)",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 43",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main_handler",
+      "community": 4,
+      "norm_label": "handler (inner)"
+    },
+    {
+      "label": "_render_stats",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 104",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main__render_stats",
+      "community": 7,
+      "norm_label": "_render_stats"
+    },
+    {
+      "label": "create_app",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 199",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main_create_app",
+      "community": 3,
+      "norm_label": "create_app"
+    },
+    {
+      "label": "lifespan (async context manager)",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 207",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main_lifespan",
+      "community": 7,
+      "norm_label": "lifespan (async context manager)"
+    },
+    {
+      "label": "stats_page route handler",
+      "file_type": "code",
+      "source_file": "main.py",
+      "source_location": "line 233",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "main_stats_page",
+      "community": 7,
+      "norm_label": "stats_page route handler"
+    },
+    {
+      "label": "favicon.svg \u2014 circular arrow refresh icon on blue background",
+      "file_type": "image",
+      "source_file": "favicon.svg",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "favicon_svg",
+      "community": 10,
+      "norm_label": "favicon.svg \u2014 circular arrow refresh icon on blue background"
+    },
+    {
+      "label": "cachest README",
+      "file_type": "document",
+      "source_file": "readme.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "readme_cachest",
+      "community": 3,
+      "norm_label": "cachest readme"
+    },
+    {
+      "label": "Per-Route Rate Limiter Implementation Plan",
+      "file_type": "document",
+      "source_file": "docs/superpowers/plans/2026-05-10-per-route-rate-limiter.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "per_route_rate_limiter_plan",
+      "community": 3,
+      "norm_label": "per-route rate limiter implementation plan"
+    },
+    {
+      "label": "Per-Route Rate Limiter Design Spec",
+      "file_type": "document",
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "per_route_rate_limiter_spec",
+      "community": 3,
+      "norm_label": "per-route rate limiter design spec"
+    },
+    {
+      "label": "Stale Cache Fallback Pattern",
+      "file_type": "rationale",
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "When rate limit is exceeded or upstream returns 403/429/502, serve the last cached value (even if stale beyond cache_ttl, up to stale_ttl). This trades data freshness for availability \u2014 callers get a response rather than an error when the upstream is temporarily unavailable or being throttled.",
+      "id": "stale_fallback_pattern",
+      "community": 4,
+      "norm_label": "stale cache fallback pattern"
+    },
+    {
+      "label": "Slot Claim Before asyncio.sleep",
+      "file_type": "rationale",
+      "source_file": "rate_limiter.py",
+      "source_location": "line 22",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "RateLimiter.acquire() updates _last_fetch before releasing the lock and before awaiting asyncio.sleep. This prevents concurrent waiters from all seeing the same 'next available' time and racing to the same slot. If the subsequent fetch fails, the slot is still consumed \u2014 intentional to avoid fetch storm on repeated failures.",
+      "id": "slot_claim_before_sleep_rationale",
+      "community": 4,
+      "norm_label": "slot claim before asyncio.sleep"
+    },
+    {
+      "label": "Fire-and-Forget Redis Stats Persistence",
+      "file_type": "rationale",
+      "source_file": "stats.py",
+      "source_location": "line 50",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "stats.record() schedules _persist() as an asyncio Task (fire-and-forget) rather than awaiting it, so the HTTP response is not delayed by Redis writes. Failures in _persist() are silently swallowed. Counter state is maintained in-process (_registry) as the primary source; Redis is a persistence layer for restart recovery.",
+      "id": "redis_stats_persistence_pattern",
+      "community": 4,
+      "norm_label": "fire-and-forget redis stats persistence"
+    },
+    {
+      "label": "Timestamped Cache Value Format",
+      "file_type": "rationale",
+      "source_file": "cache.py",
+      "source_location": "line 27",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "rationale": "Cache values are stored as '{unix_ts}|{value}' in Redis. The TTL set on the key (stale_ttl) is much longer than the freshness window (cache_ttl). Staleness is determined by comparing the embedded timestamp to cache_ttl at read time, not by Redis expiry. This allows serving stale values long after cache_ttl without needing a separate data structure.",
+      "id": "timestamped_cache_value_pattern",
+      "community": 4,
+      "norm_label": "timestamped cache value format"
+    }
+  ],
+  "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "cachest_config_extractconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "cachest_config_routeconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "cachest_config_redisconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "cachest_config_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "config_py",
+      "target": "cachest_config_load",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "cachest_config_load",
+      "target": "cachest_config_extractconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "fetcher.py",
+      "source_location": "L3",
+      "weight": 0.8,
+      "source": "cachest_fetcher_upstreamerror",
+      "target": "cachest_config_extractconfig",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "uses",
+      "confidence": "INFERRED",
+      "source_file": "fetcher.py",
+      "source_location": "L3",
+      "weight": 0.8,
+      "source": "cachest_fetcher_ratelimitederror",
+      "target": "cachest_config_extractconfig",
+      "confidence_score": 0.5
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_429",
+      "target": "cachest_config_extractconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_403",
+      "target": "cachest_config_extractconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_502",
+      "target": "cachest_config_extractconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_returns_text_on_200",
+      "target": "cachest_config_extractconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "cachest_config_load",
+      "target": "cachest_config_routeconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "tests_test_main_make_config",
+      "target": "cachest_config_routeconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "cachest_config_load",
+      "target": "cachest_config_redisconfig",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_test_main_make_config",
+      "target": "cachest_config_redisconfig"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "config.py",
+      "source_location": "L68",
+      "weight": 1.0,
+      "source": "cachest_config_load",
+      "target": "cachest_config_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "tests_test_main_make_config",
+      "target": "cachest_config_config"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_config.py",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "tests_test_config_test_fetch_interval_parsed",
+      "target": "cachest_config_load"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_config.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "tests_test_config_test_fetch_interval_defaults",
+      "target": "cachest_config_load"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_config.py",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "tests_test_config_test_stale_ttl_explicit",
+      "target": "cachest_config_load"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_config.py",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "tests_test_config_test_stale_ttl_default",
+      "target": "cachest_config_load"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "rate_limiter.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "rate_limiter_py",
+      "target": "cachest_rate_limiter_ratelimiter",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "rate_limiter.py",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "cachest_rate_limiter_ratelimiter",
+      "target": "cachest_rate_limiter_ratelimiter_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "rate_limiter.py",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "cachest_rate_limiter_ratelimiter",
+      "target": "cachest_rate_limiter_ratelimiter_acquire",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main.py",
+      "source_location": "L238",
+      "weight": 1.0,
+      "source": "cachest_main_create_app",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_test_first_acquire_returns_true",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_test_immediate_second_acquire_waits_and_returns_true",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_test_acquire_returns_false_when_wait_exceeds_max",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_test_acquire_true_after_interval_has_passed",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L50",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_test_concurrent_callers_get_distinct_slots",
+      "target": "cachest_rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "cache_py",
+      "target": "cachest_cache_cachemiss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "cache_py",
+      "target": "cachest_cache_cachestale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "cache_py",
+      "target": "cachest_cache_rediscache",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "cachest_cache_cachemiss",
+      "target": "exception",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache_get",
+      "target": "cachest_cache_cachemiss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tests_test_main_mock_cache",
+      "target": "cachest_cache_cachemiss"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "target": "cachest_cache_cachemiss"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L145",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "target": "cachest_cache_cachemiss"
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "cachest_cache_cachestale",
+      "target": "exception",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "cachest_fetcher_upstreamerror",
+      "target": "exception",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "cachest_cache_cachestale",
+      "target": "cachest_cache_cachestale_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache_get",
+      "target": "cachest_cache_cachestale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L175",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_triggers_refetch",
+      "target": "cachest_cache_cachestale"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L12",
+      "weight": 1.0,
+      "source": "cachest_cache_cachestale_init",
+      "target": "cachest_cache_rediscache_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache",
+      "target": "cachest_cache_rediscache_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache",
+      "target": "cachest_cache_rediscache_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache",
+      "target": "cachest_cache_rediscache_set",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache",
+      "target": "cachest_cache_rediscache_scan_prefix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "cachest_cache_rediscache",
+      "target": "cachest_cache_rediscache_close",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "main.py",
+      "source_location": "L200",
+      "weight": 1.0,
+      "source": "cachest_main_create_app",
+      "target": "cachest_cache_rediscache"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_stats.py",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "tests_test_stats_test_all_routes_snapshot",
+      "target": "cachest_cache_rediscache_set"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "cache.py",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "cachest_cache_rationale_40",
+      "target": "cachest_cache_rediscache_scan_prefix",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_routestats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L21",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_record",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L58",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_all_routes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_load_from_redis",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "stats_py",
+      "target": "cachest_stats_persist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "cachest_stats_get",
+      "target": "cachest_stats_routestats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L33",
+      "weight": 1.0,
+      "source": "cachest_stats_record",
+      "target": "cachest_stats_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L70",
+      "weight": 1.0,
+      "source": "cachest_stats_load_from_redis",
+      "target": "cachest_stats_get",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "stats.py",
+      "source_location": "L53",
+      "weight": 1.0,
+      "source": "cachest_stats_record",
+      "target": "cachest_stats_persist",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_cache_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L30",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_build_url",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_respond",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_make_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L104",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_render_stats",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L199",
+      "weight": 1.0,
+      "source": "main_py",
+      "target": "cachest_main_create_app",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "cachest_main_rationale_24",
+      "target": "cachest_main_cache_key",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "main.py",
+      "source_location": "L241",
+      "weight": 1.0,
+      "source": "cachest_main_create_app",
+      "target": "cachest_main_make_handler",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "tests_test_main_test_cache_hit_skips_fetch",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L62",
+      "weight": 1.0,
+      "source": "tests_test_main_test_cache_miss_fetches_and_stores",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L79",
+      "weight": 1.0,
+      "source": "tests_test_main_test_rate_limiter_false_returns_stale",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L106",
+      "weight": 1.0,
+      "source": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L119",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_returns_stale",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L143",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L159",
+      "weight": 1.0,
+      "source": "tests_test_main_test_force_refresh_rate_limited_returns_stale",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L174",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_triggers_refetch",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L193",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_served_when_rate_limited",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L218",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "target": "cachest_main_create_app"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "fetcher_py",
+      "target": "cachest_fetcher_upstreamerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "fetcher_py",
+      "target": "cachest_fetcher_ratelimitederror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "fetcher_py",
+      "target": "cachest_fetcher_fetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "fetcher_py",
+      "target": "cachest_fetcher_extract_from_html",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "cachest_fetcher_upstreamerror",
+      "target": "cachest_fetcher_upstreamerror_init",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "cachest_fetcher_ratelimitederror",
+      "target": "cachest_fetcher_upstreamerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "cachest_fetcher_fetch",
+      "target": "cachest_fetcher_upstreamerror",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L120",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_returns_stale",
+      "target": "cachest_fetcher_upstreamerror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "target": "cachest_fetcher_upstreamerror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_main.py",
+      "source_location": "L219",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "target": "cachest_fetcher_upstreamerror"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "fetcher.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "cachest_fetcher_fetch",
+      "target": "cachest_fetcher_extract_from_html",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L13",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_429",
+      "target": "cachest_fetcher_fetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_403",
+      "target": "cachest_fetcher_fetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L31",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_raises_upstream_error_on_502",
+      "target": "cachest_fetcher_fetch"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "INFERRED",
+      "confidence_score": 0.8,
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_test_fetch_returns_text_on_200",
+      "target": "cachest_fetcher_fetch"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L9",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_setup_function",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_hit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_miss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L32",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L41",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_accumulates",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_multiple_routes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_all_routes_snapshot",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L80",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_all_routes_is_copy",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L87",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_unknown_x_cache_increments_total_only",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L96",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_get_creates_empty",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L102",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_no_redis_write_when_client_not_set",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L108",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_record_schedules_redis_write_when_client_set",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L127",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_load_from_redis_pre_populates_registry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_stats.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "tests_test_stats_py",
+      "target": "tests_test_stats_test_persist_failure_is_silent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L22",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_fetch_interval_parsed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_fetch_interval_defaults",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_stale_ttl_explicit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_config.py",
+      "source_location": "L56",
+      "weight": 1.0,
+      "source": "tests_test_config_py",
+      "target": "tests_test_config_test_stale_ttl_default",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_py",
+      "target": "tests_test_rate_limiter_test_first_acquire_returns_true",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_py",
+      "target": "tests_test_rate_limiter_test_immediate_second_acquire_waits_and_returns_true",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L26",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_py",
+      "target": "tests_test_rate_limiter_test_acquire_returns_false_when_wait_exceeds_max",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L38",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_py",
+      "target": "tests_test_rate_limiter_test_acquire_true_after_interval_has_passed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L48",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_py",
+      "target": "tests_test_rate_limiter_test_concurrent_callers_get_distinct_slots",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L15",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_rationale_15",
+      "target": "tests_test_rate_limiter_test_immediate_second_acquire_waits_and_returns_true",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_rationale_27",
+      "target": "tests_test_rate_limiter_test_acquire_returns_false_when_wait_exceeds_max",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L39",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_rationale_39",
+      "target": "tests_test_rate_limiter_test_acquire_true_after_interval_has_passed",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_rate_limiter.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "tests_test_rate_limiter_rationale_49",
+      "target": "tests_test_rate_limiter_test_concurrent_callers_get_distinct_slots",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_py",
+      "target": "tests_test_fetcher_test_fetch_raises_upstream_error_on_429",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L19",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_py",
+      "target": "tests_test_fetcher_test_fetch_raises_upstream_error_on_403",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L28",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_py",
+      "target": "tests_test_fetcher_test_fetch_raises_upstream_error_on_502",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_fetcher.py",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "tests_test_fetcher_py",
+      "target": "tests_test_fetcher_test_fetch_returns_text_on_200",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L25",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_mock_cache",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L40",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_mock_fetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L46",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_cache_hit_skips_fetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L59",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_cache_miss_fetches_and_stores",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L71",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_rate_limiter_false_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L114",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_upstream_error_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L138",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L151",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_force_refresh_rate_limited_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L169",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_stale_entry_triggers_refetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L184",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_stale_entry_served_when_rate_limited",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L212",
+      "weight": 1.0,
+      "source": "tests_test_main_py",
+      "target": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "tests_test_main_test_cache_hit_skips_fetch",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L60",
+      "weight": 1.0,
+      "source": "tests_test_main_test_cache_miss_fetches_and_stores",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L73",
+      "weight": 1.0,
+      "source": "tests_test_main_test_rate_limiter_false_returns_stale",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L100",
+      "weight": 1.0,
+      "source": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_returns_stale",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L141",
+      "weight": 1.0,
+      "source": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L153",
+      "weight": 1.0,
+      "source": "tests_test_main_test_force_refresh_rate_limited_returns_stale",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L172",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_triggers_refetch",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L187",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_served_when_rate_limited",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L216",
+      "weight": 1.0,
+      "source": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "target": "tests_test_main_make_config",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L72",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_72",
+      "target": "tests_test_main_test_rate_limiter_false_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L99",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_99",
+      "target": "tests_test_main_test_rate_limiter_false_no_stale_returns_503",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L115",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_115",
+      "target": "tests_test_main_test_upstream_error_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L139",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_139",
+      "target": "tests_test_main_test_upstream_error_no_stale_returns_503",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L152",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_152",
+      "target": "tests_test_main_test_force_refresh_rate_limited_returns_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L170",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_170",
+      "target": "tests_test_main_test_stale_entry_triggers_refetch",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L185",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_185",
+      "target": "tests_test_main_test_stale_entry_served_when_rate_limited",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_main.py",
+      "source_location": "L213",
+      "weight": 1.0,
+      "source": "tests_test_main_rationale_213",
+      "target": "tests_test_main_test_stale_entry_served_on_upstream_error",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L8",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_redis_mock",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L17",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_cache",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L23",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_get_miss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L29",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_get_fresh",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_get_stale",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L43",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_get_value_with_pipe",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L49",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_get_legacy_entry_treated_as_miss",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "tests/test_cache.py",
+      "source_location": "L55",
+      "weight": 1.0,
+      "source": "tests_test_cache_py",
+      "target": "tests_test_cache_test_set_stores_stamped_value",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 53",
+      "weight": 1.0,
+      "source": "config_load",
+      "target": "config_extractconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 18",
+      "weight": 1.0,
+      "source": "config_routeconfig",
+      "target": "config_extractconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "fetcher.py",
+      "source_location": "line 17",
+      "weight": 1.0,
+      "source": "fetcher_fetch",
+      "target": "config_extractconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "fetcher.py",
+      "source_location": "line 31",
+      "weight": 1.0,
+      "source": "fetcher__extract_from_html",
+      "target": "config_extractconfig"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 58",
+      "weight": 1.0,
+      "source": "config_load",
+      "target": "config_routeconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 35",
+      "weight": 1.0,
+      "source": "config_config",
+      "target": "config_routeconfig"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-10-per-route-rate-limiter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_plan",
+      "target": "config_routeconfig"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "readme.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_cachest",
+      "target": "config_routeconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 42",
+      "weight": 1.0,
+      "source": "main_make_handler",
+      "target": "config_routeconfig"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 43",
+      "weight": 1.0,
+      "source": "config_load",
+      "target": "config_redisconfig"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 34",
+      "weight": 1.0,
+      "source": "config_config",
+      "target": "config_redisconfig"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "config.py",
+      "source_location": "line 68",
+      "weight": 1.0,
+      "source": "config_load",
+      "target": "config_config"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 238",
+      "weight": 1.0,
+      "source": "main_create_app",
+      "target": "rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-10-per-route-rate-limiter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_plan",
+      "target": "rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_spec",
+      "target": "rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "readme.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_cachest",
+      "target": "rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 42",
+      "weight": 1.0,
+      "source": "main_make_handler",
+      "target": "rate_limiter_ratelimiter"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 59",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "rate_limiter_ratelimiter_acquire"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "rate_limiter.py",
+      "source_location": "line 22",
+      "weight": 1.0,
+      "source": "slot_claim_before_sleep_rationale",
+      "target": "rate_limiter_ratelimiter_acquire"
+    },
+    {
+      "relation": "conceptually_related_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "rate_limiter.py",
+      "source_location": null,
+      "weight": 0.95,
+      "source": "rate_limiter_ratelimiter_acquire",
+      "target": "stale_fallback_pattern"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "cache.py",
+      "source_location": "line 25",
+      "weight": 1.0,
+      "source": "cache_rediscache_get",
+      "target": "cache_cachemiss"
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "cache.py",
+      "source_location": null,
+      "weight": 0.65,
+      "source": "cache_cachemiss",
+      "target": "cache_cachestale"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "cache.py",
+      "source_location": "line 32",
+      "weight": 1.0,
+      "source": "cache_rediscache_get",
+      "target": "cache_cachestale"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "stale_fallback_pattern",
+      "target": "cache_cachestale"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 200",
+      "weight": 1.0,
+      "source": "main_create_app",
+      "target": "cache_rediscache"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 42",
+      "weight": 1.0,
+      "source": "main_make_handler",
+      "target": "cache_rediscache"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 50",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "cache_rediscache_get"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "cache.py",
+      "source_location": "line 27",
+      "weight": 1.0,
+      "source": "timestamped_cache_value_pattern",
+      "target": "cache_rediscache_get"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 95",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "cache_rediscache_set"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "cache.py",
+      "source_location": "line 35",
+      "weight": 1.0,
+      "source": "timestamped_cache_value_pattern",
+      "target": "cache_rediscache_set"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 115",
+      "weight": 1.0,
+      "source": "main__render_stats",
+      "target": "cache_rediscache_scan_prefix"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 218",
+      "weight": 1.0,
+      "source": "main_lifespan",
+      "target": "cache_rediscache_close"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 28",
+      "weight": 1.0,
+      "source": "stats_get",
+      "target": "stats_routestats"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 59",
+      "weight": 1.0,
+      "source": "stats_all_routes",
+      "target": "stats_routestats"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 216",
+      "weight": 1.0,
+      "source": "main_lifespan",
+      "target": "stats_init"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 33",
+      "weight": 1.0,
+      "source": "stats_record",
+      "target": "stats_get"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 69",
+      "weight": 1.0,
+      "source": "stats_load_from_redis",
+      "target": "stats_get"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 53",
+      "weight": 1.0,
+      "source": "stats_record",
+      "target": "stats__persist"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 38",
+      "weight": 1.0,
+      "source": "main__respond",
+      "target": "stats_record"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py",
+      "source_location": "line 50",
+      "weight": 1.0,
+      "source": "redis_stats_persistence_pattern",
+      "target": "stats_record"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 69",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "stats_record"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 107",
+      "weight": 1.0,
+      "source": "main__render_stats",
+      "target": "stats_all_routes"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 215",
+      "weight": 1.0,
+      "source": "main_lifespan",
+      "target": "stats_load_from_redis"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "fetcher.py",
+      "source_location": "line 22",
+      "weight": 1.0,
+      "source": "fetcher_fetch",
+      "target": "fetcher_upstreamerror"
+    },
+    {
+      "relation": "implements",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "fetcher.py",
+      "source_location": "line 13",
+      "weight": 1.0,
+      "source": "fetcher_ratelimitederror",
+      "target": "fetcher_upstreamerror"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/plans/2026-05-10-per-route-rate-limiter.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_plan",
+      "target": "fetcher_upstreamerror"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_spec",
+      "target": "fetcher_upstreamerror"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "fetcher.py",
+      "source_location": "line 28",
+      "weight": 1.0,
+      "source": "fetcher_fetch",
+      "target": "fetcher__extract_from_html"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 74",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "fetcher_fetch"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 45",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "main__cache_key"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 72",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "main__build_url"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 51",
+      "weight": 1.0,
+      "source": "main_handler",
+      "target": "main__respond"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 43",
+      "weight": 1.0,
+      "source": "main_make_handler",
+      "target": "main_handler"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 240",
+      "weight": 1.0,
+      "source": "main_create_app",
+      "target": "main_make_handler"
+    },
+    {
+      "relation": "rationale_for",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "main.py",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "stale_fallback_pattern",
+      "target": "main_handler"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py",
+      "source_location": "line 234",
+      "weight": 1.0,
+      "source": "main_stats_page",
+      "target": "main__render_stats"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "readme.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "readme_cachest",
+      "target": "main_create_app"
+    },
+    {
+      "relation": "references",
+      "confidence": "INFERRED",
+      "confidence_score": 0.85,
+      "source_file": "docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md",
+      "source_location": null,
+      "weight": 1.0,
+      "source": "per_route_rate_limiter_spec",
+      "target": "per_route_rate_limiter_plan"
+    }
+  ],
+  "hyperedges": [
+    {
+      "id": "request_handling_flow",
+      "label": "Per-Request Cache/Rate-Limit/Fetch Flow",
+      "nodes": [
+        "main_handler",
+        "cache_rediscache_get",
+        "rate_limiter_ratelimiter_acquire",
+        "fetcher_fetch",
+        "cache_rediscache_set",
+        "main__respond"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py"
+    },
+    {
+      "id": "stale_fallback_triggers",
+      "label": "Stale Fallback Triggers (rate-limit or upstream error)",
+      "nodes": [
+        "rate_limiter_ratelimiter_acquire",
+        "fetcher_upstreamerror",
+        "cache_cachestale",
+        "main_handler"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "main.py"
+    },
+    {
+      "id": "stats_persistence_flow",
+      "label": "Stats In-Process + Redis Persistence Flow",
+      "nodes": [
+        "stats_record",
+        "stats__persist",
+        "stats_load_from_redis",
+        "stats_routestats"
+      ],
+      "relation": "participate_in",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "stats.py"
+    }
+  ],
+  "built_at_commit": "434ed92b6b01368a71492db59af402658ce9c831"
+}
