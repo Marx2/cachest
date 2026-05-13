@@ -1,3 +1,5 @@
+import json
+
 import httpx
 from bs4 import BeautifulSoup
 from config import ExtractConfig
@@ -14,13 +16,17 @@ class RateLimitedError(UpstreamError):
     pass
 
 
-async def fetch(url: str, extract: ExtractConfig) -> str:
+async def fetch(url: str, extract: ExtractConfig, json_field: str = "") -> str:
     async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
         resp = await client.get(url)
 
     if resp.status_code in (403, 429, 502):
         raise UpstreamError(url, resp.status_code)
     resp.raise_for_status()
+
+    if json_field:
+        data = json.loads(resp.text)
+        return str(data[json_field])
 
     if not extract.selector:
         return resp.text.strip()

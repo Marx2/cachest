@@ -1,12 +1,16 @@
 import logging
 import time
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import Any
 
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+
+load_dotenv()
 
 import stats
 from cache import CacheMiss, CacheStale, RedisCache
@@ -27,11 +31,11 @@ def _cache_key(path_template: str, path_params: dict[str, str]) -> str:
     return f"{first_seg}:{values}" if values else first_seg
 
 
-def _build_url(template: str, path_params: dict[str, str]) -> str:
+def _build_url(template: str, path_params: dict[str, str], api_key: str = "") -> str:
     url = template
     for k, v in path_params.items():
         url = url.replace(f"{{{k}}}", v)
-    return url
+    return url.replace("{api_key}", api_key)
 
 
 def _respond(route_path: str, value: str, x_cache: str, **extra_headers) -> PlainTextResponse:
@@ -69,9 +73,27 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
             stats.record(route.path, "ERROR")
             return PlainTextResponse("rate limit exceeded and no cached value available", status_code=503)
 
-        url = _build_url(route.url, path_params)
+        if route.daily_limit > 0 and route.name:
+            today = datetime.utcnow().strftime("%Y-%m-%d")
+            quota_key = f"limit:{route.name}:{today}"
+            count = await cache._client.incr(quota_key)
+            if count == 1:
+                await cache._client.expire(quota_key, 90_000)
+            if count > route.daily_limit:
+                logger.warning("[quota] daily limit %d exceeded for %r (count=%d)", route.daily_limit, route.name, count)
+                try:
+                    stale = await cache.get(key, route.cache_ttl)
+                    return _respond(route.path, stale, "STALE", **{"X-Cache-Stale-Reason": "quota-exceeded"})
+                except CacheStale as e:
+                    return _respond(route.path, e.value, "STALE", **{"X-Cache-Stale-Reason": "quota-exceeded"})
+                except CacheMiss:
+                    pass
+                stats.record(route.path, "ERROR")
+                return PlainTextResponse("daily upstream limit reached", status_code=503)
+
+        url = _build_url(route.url, path_params, route.api_key)
         try:
-            value = await fetch(url, route.extract)
+            value = await fetch(url, route.extract, route.json_field)
         except UpstreamError as e:
             logger.warning("[upstream-error] %r returned HTTP %d — serving stale", e.url, e.status_code)
             try:

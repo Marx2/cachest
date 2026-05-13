@@ -20,3 +20,18 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
+
+  test:
+    build:
+      context: .
+      target: test
+    profiles: ["test"]
+    depends_on:
+      redis:
+        condition: service_healthy
+    env_file:
+      - path: .env
+        required: false
