@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 import yaml
@@ -15,6 +16,10 @@ class RouteConfig:
     path: str
     url: str
     cache_ttl: int
+    name: str = ""
+    api_key: str = ""
+    daily_limit: int = 0
+    json_field: str = ""
     extract: ExtractConfig = field(default_factory=ExtractConfig)
     fetch_interval: float = 2.0
     fetch_max_wait: float = 4.0
@@ -55,10 +60,16 @@ def load(path: str | Path) -> Config:
             label=ext_raw.get("label", ""),
             field=ext_raw.get("field", ""),
         )
+        name = r.get("name", "")
+        api_key = os.environ.get(f"API_{name}", "") if name else ""
         routes.append(RouteConfig(
             path=r["path"],
             url=r["url"],
             cache_ttl=int(r["cache_ttl"]),
+            name=name,
+            api_key=api_key,
+            daily_limit=int(r.get("daily_limit", 0)),
+            json_field=r.get("json_field", ""),
             extract=extract,
             fetch_interval=float(r.get("fetch_interval", 2.0)),
             fetch_max_wait=float(r.get("fetch_max_wait", 4.0)),

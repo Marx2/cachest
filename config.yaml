@@ -5,7 +5,8 @@ redis:
   db: 0
 
 routes:
-  - path: /dy/{ticker}
+  - name: DIVIDENDHISTORY
+    path: /dyhistory/{ticker}
     url: "https://dividendhistory.org/payout/{ticker}/"
     extract:
       selector: "dl.metrics-list .metric-row"
@@ -16,10 +17,29 @@ routes:
     fetch_interval: 2         # min seconds between remote fetches
     fetch_max_wait: 4         # max queue wait before falling back to stale
 
-  - path: /price/{ticker}
+  - name: ALPHAVANTAGE
+    path: /dy/{ticker}
+    url: "https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={api_key}"
+    json_field: DividendYield
+    daily_limit: 25
+    cache_ttl: 86400
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
+  - name: FMP
+    path: /dy2/{ticker}
+    url: "https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={api_key}"
+    daily_limit: 250          # max upstream fetches per calendar day; 0 = unlimited
+    cache_ttl: 86400
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
+  - name: PRICE
+    path: /price/{ticker}
     url: "https://someapi.com/price/{ticker}"
-    # no extract block = endpoint returns plain text value
-    cache_ttl: 300            # 5 minutes
-    stale_ttl: 2592000        # 30 days
+    cache_ttl: 300
+    stale_ttl: 2592000
     fetch_interval: 2
     fetch_max_wait: 4

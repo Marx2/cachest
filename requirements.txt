@@ -1,4 +1,5 @@
 fastapi[standard]==0.115.12
+python-dotenv==1.0.1
 httpx==0.28.1
 redis[asyncio]==5.2.1
 beautifulsoup4==4.13.4
