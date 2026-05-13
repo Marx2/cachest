@@ -46,7 +46,7 @@ def load(path: str | Path) -> Config:
 
     redis_raw = raw.get("redis", {})
     redis_cfg = RedisConfig(
-        host=redis_raw.get("host", "localhost"),
+        host=os.environ.get("REDIS_HOST") or redis_raw.get("host", "localhost"),
         port=redis_raw.get("port", 6379),
         password=redis_raw.get("password", "") or "",
         db=redis_raw.get("db", 0),
