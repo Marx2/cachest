@@ -8,7 +8,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 
 load_dotenv()
 
@@ -160,6 +160,7 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
               </div>""")
 
         upstream_short = route.url[:60] + ("…" if len(route.url) > 60 else "")
+        prefix = path.lstrip("/").split("/")[0]
         card = f"""
     <div class="card">
       <div class="card-header">
@@ -175,6 +176,9 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
       </div>
       <div class="redis-keys">Redis keys: {total_keys}</div>
       <div class="chart">{''.join(bars_html)}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-danger" onclick="resetCache(this, '{prefix}')">Reset cache for {prefix}</button>
       </div>
     </div>"""
         cards_html.append(card)
@@ -207,13 +211,34 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
     .bar-wrap {{ display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }}
     .bar {{ width: 100%; background: #3b82f6; border-radius: 2px 2px 0 0; min-height: 1px; transition: height 0.2s; }}
     .bar-label {{ font-size: 0.55rem; color: #64748b; margin-top: 2px; white-space: nowrap; }}
+    .card-actions {{ margin-top: 0.75rem; display: flex; gap: 0.5rem; }}
+    .btn {{ padding: 0.3rem 0.75rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }}
+    .btn:hover {{ opacity: 0.85; }}
+    .btn-danger {{ background: #7f1d1d; color: #fca5a5; }}
+    .btn-warning {{ background: #451a03; color: #fcd34d; }}
+    .header-row {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }}
   </style>
 </head>
 <body>
-  <h1>cachest / stats</h1>
+  <div class="header-row">
+    <h1>cachest / stats</h1>
+    <button class="btn btn-warning" onclick="resetStats()">Reset statistics</button>
+  </div>
   <div class="grid">
     {''.join(cards_html)}
   </div>
+  <script>
+    async function resetStats() {{
+      if (!confirm('Reset all statistics? This cannot be undone.')) return;
+      await fetch('/stats/reset', {{method: 'POST'}});
+      location.reload();
+    }}
+    async function resetCache(btn, prefix) {{
+      if (!confirm('Delete all cached keys for "' + prefix + '"? This cannot be undone.')) return;
+      await fetch('/stats/reset-cache/' + prefix, {{method: 'POST'}});
+      location.reload();
+    }}
+  </script>
 </body>
 </html>"""
 
@@ -255,6 +280,18 @@ def create_app(config: Config) -> FastAPI:
     async def stats_page():
         html = await _render_stats(config, cache)
         return HTMLResponse(html)
+
+    @app.post("/stats/reset", include_in_schema=False)
+    async def stats_reset():
+        stats.reset_all(cache._client)
+        return JSONResponse({"ok": True})
+
+    @app.post("/stats/reset-cache/{prefix}", include_in_schema=False)
+    async def stats_reset_cache(prefix: str):
+        keys = [k async for k in cache._client.scan_iter(f"{prefix}:*")]
+        if keys:
+            await cache._client.delete(*keys)
+        return JSONResponse({"ok": True, "deleted": len(keys)})
 
     for route in config.routes:
         limiter = RateLimiter(interval=route.fetch_interval, max_wait=route.fetch_max_wait)
