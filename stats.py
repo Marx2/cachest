@@ -59,6 +59,26 @@ def all_routes() -> dict[str, RouteStats]:
     return {k: copy.copy(v) for k, v in _registry.items()}
 
 
+def reset_all(client: Redis) -> None:
+    global _registry
+    _registry = {}
+    if client is not None:
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_delete_all_stats(client))
+        except RuntimeError:
+            pass
+
+
+async def _delete_all_stats(client: Redis) -> None:
+    try:
+        keys = [k async for k in client.scan_iter("stats:*")]
+        if keys:
+            await client.delete(*keys)
+    except Exception:
+        pass
+
+
 async def load_from_redis(client: Redis) -> None:
     try:
         async for key in client.scan_iter("stats:*"):
