@@ -43,5 +43,13 @@ class RedisCache:
             return []
         return [v for v in await self._client.mget(*keys) if v is not None]
 
+    async def scan_prefix_with_keys(self, prefix: str) -> list[tuple[str, str]]:
+        """Return [(key, raw_value)] for all keys matching prefix:*"""
+        keys = [k async for k in self._client.scan_iter(f"{prefix}:*")]
+        if not keys:
+            return []
+        values = await self._client.mget(*keys)
+        return [(k, v) for k, v in zip(keys, values) if v is not None]
+
     async def close(self) -> None:
         await self._client.aclose()

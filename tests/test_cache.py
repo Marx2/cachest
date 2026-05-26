@@ -62,3 +62,35 @@ async def test_set_stores_stamped_value(cache, redis_mock):
     ts_str, value = stored.split("|", 1)
     assert value == "myvalue"
     assert before <= int(ts_str) <= after
+
+
+async def test_scan_prefix_with_keys_returns_pairs(cache, redis_mock):
+    async def _scan(pattern):
+        for k in ["dy:AAPL", "dy:TSLA"]:
+            yield k
+
+    redis_mock.scan_iter = _scan
+    redis_mock.mget = AsyncMock(return_value=["123|0.05", "456|0.03"])
+    result = await cache.scan_prefix_with_keys("dy")
+    assert result == [("dy:AAPL", "123|0.05"), ("dy:TSLA", "456|0.03")]
+
+
+async def test_scan_prefix_with_keys_empty(cache, redis_mock):
+    async def _scan(pattern):
+        return
+        yield
+
+    redis_mock.scan_iter = _scan
+    result = await cache.scan_prefix_with_keys("dy")
+    assert result == []
+
+
+async def test_scan_prefix_with_keys_filters_none(cache, redis_mock):
+    async def _scan(pattern):
+        for k in ["dy:AAPL", "dy:TSLA"]:
+            yield k
+
+    redis_mock.scan_iter = _scan
+    redis_mock.mget = AsyncMock(return_value=["123|0.05", None])
+    result = await cache.scan_prefix_with_keys("dy")
+    assert result == [("dy:AAPL", "123|0.05")]

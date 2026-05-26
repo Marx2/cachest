@@ -31,6 +31,8 @@ def mock_cache():
     cache.get = AsyncMock(side_effect=CacheMiss("test:1"))
     cache.set = AsyncMock()
     cache.close = AsyncMock()
+    cache.scan_prefix = AsyncMock(return_value=[])
+    cache.scan_prefix_with_keys = AsyncMock(return_value=[])
     cache._client = MagicMock()
     cache._client.scan_iter = MagicMock(return_value=_empty())
     return cache
@@ -232,3 +234,71 @@ def test_stale_entry_served_on_upstream_error(mock_cache, mock_fetch):
     assert resp.status_code == 200
     assert resp.text == "old_value"
     assert resp.headers["x-cache"] == "STALE"
+
+
+def test_invalidate_ticker_deletes_keys(mock_cache, mock_fetch):
+    cfg = _make_config()
+
+    async def _scan(pattern):
+        yield "test:AAPL"
+
+    mock_cache._client.scan_iter = _scan
+    mock_cache._client.delete = AsyncMock()
+
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+
+    client = TestClient(app)
+    resp = client.post("/stats/invalidate-ticker/test/AAPL")
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "deleted": 1}
+    mock_cache._client.delete.assert_called_once_with("test:AAPL")
+
+
+def test_invalidate_ticker_no_keys(mock_cache, mock_fetch):
+    cfg = _make_config()
+
+    async def _scan(pattern):
+        return
+        yield
+
+    mock_cache._client.scan_iter = _scan
+    mock_cache._client.delete = AsyncMock()
+
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+
+    client = TestClient(app)
+    resp = client.post("/stats/invalidate-ticker/test/AAPL")
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "deleted": 0}
+    mock_cache._client.delete.assert_not_called()
+
+
+def test_stats_page_includes_cache_browser(mock_cache, mock_fetch):
+    cfg = _make_config()
+    mock_cache.scan_prefix_with_keys = AsyncMock(
+        return_value=[("test:AAPL", "1700000000|0.05")]
+    )
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+
+    client = TestClient(app)
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    assert "Cache Browser" in resp.text
+    assert "cache-filter" in resp.text
+    assert "invalidate-btn" in resp.text
+    assert "AAPL" in resp.text
+
+
+def test_stats_page_empty_cache_browser(mock_cache, mock_fetch):
+    cfg = _make_config()
+    mock_cache.scan_prefix_with_keys = AsyncMock(return_value=[])
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+
+    client = TestClient(app)
+    resp = client.get("/stats")
+    assert resp.status_code == 200
+    assert "Cache Browser (0 entries)" in resp.text
