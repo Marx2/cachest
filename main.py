@@ -1,3 +1,4 @@
+import json
 import logging
 import time
 from contextlib import asynccontextmanager
@@ -183,6 +184,29 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
     </div>"""
         cards_html.append(card)
 
+    all_entries: list[dict] = []
+    for route in config.routes:
+        prefix = route.path.lstrip("/").split("/")[0]
+        pairs = await cache.scan_prefix_with_keys(prefix)
+        ticker_map: dict[str, dict] = {}
+        for key, raw in pairs:
+            try:
+                ts_str, value = raw.split("|", 1)
+                ticker = key.split(":", 1)[1] if ":" in key else key
+                ts = int(ts_str)
+                if ticker not in ticker_map or ts > ticker_map[ticker]["ts"]:
+                    ticker_map[ticker] = {
+                        "prefix": prefix,
+                        "ticker": ticker,
+                        "ts": ts,
+                        "value": value[:80],
+                    }
+            except (ValueError, IndexError):
+                pass
+        all_entries.extend(ticker_map.values())
+    all_entries.sort(key=lambda e: e["ts"], reverse=True)
+    cache_entries_json = json.dumps(all_entries)
+
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -217,6 +241,15 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
     .btn-danger {{ background: #7f1d1d; color: #fca5a5; }}
     .btn-warning {{ background: #451a03; color: #fcd34d; }}
     .header-row {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }}
+    .cache-browser {{ margin-top: 2rem; }}
+    .cache-browser h2 {{ font-size: 1rem; font-weight: 600; color: #94a3b8; margin-bottom: 1rem; }}
+    .cache-controls {{ display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }}
+    .cache-controls input {{ background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 0.3rem 0.6rem; border-radius: 0.375rem; font-size: 0.8rem; width: 200px; }}
+    .cache-sort {{ display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }}
+    .cache-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; }}
+    .cache-table th, .cache-table td {{ padding: 0.5rem 0.75rem; border-bottom: 1px solid #1e293b; text-align: left; }}
+    .cache-table th {{ color: #64748b; font-weight: 600; background: #1e293b; }}
+    .cache-table tr:hover td {{ background: #1e293b44; }}
   </style>
 </head>
 <body>
@@ -226,6 +259,21 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
   </div>
   <div class="grid">
     {''.join(cards_html)}
+  </div>
+  <div class="cache-browser">
+    <h2>Cache Browser ({len(all_entries)} entries)</h2>
+    <div class="cache-controls">
+      <input id="cache-filter" type="text" placeholder="Filter by ticker…">
+      <button id="invalidate-btn" class="btn btn-danger" disabled onclick="invalidateFiltered()">Invalidate</button>
+    </div>
+    <div class="cache-sort">
+      <button class="btn btn-warning" onclick="setSortDesc(true)">Newest first</button>
+      <button class="btn btn-warning" onclick="setSortDesc(false)">Oldest first</button>
+    </div>
+    <table class="cache-table">
+      <thead><tr><th>Ticker</th><th>Route</th><th>Cached At</th><th>Value</th></tr></thead>
+      <tbody id="cache-tbody"></tbody>
+    </table>
   </div>
   <script>
     async function resetStats() {{
@@ -238,6 +286,70 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
       await fetch('/stats/reset-cache/' + prefix, {{method: 'POST'}});
       location.reload();
     }}
+
+    const CACHE_ENTRIES = {cache_entries_json};
+    let sortDesc = true;
+    let filterText = '';
+
+    function getMatchingRows() {{
+      return CACHE_ENTRIES.filter(e =>
+        filterText && e.ticker.toLowerCase().includes(filterText.toLowerCase())
+      );
+    }}
+
+    function renderCacheTable() {{
+      let rows = filterText
+        ? CACHE_ENTRIES.filter(e => e.ticker.toLowerCase().includes(filterText.toLowerCase()))
+        : [...CACHE_ENTRIES];
+      rows.sort((a, b) => sortDesc ? b.ts - a.ts : a.ts - b.ts);
+
+      const tbody = document.getElementById('cache-tbody');
+      tbody.innerHTML = rows.map(e => `
+        <tr>
+          <td>${{e.ticker}}</td>
+          <td>${{e.prefix}}</td>
+          <td>${{new Date(e.ts * 1000).toLocaleString()}}</td>
+          <td style="font-family:monospace;font-size:0.7rem">${{e.value}}</td>
+        </tr>`).join('');
+
+      const matching = getMatchingRows();
+      const btn = document.getElementById('invalidate-btn');
+      const ticker = filterText.trim().toUpperCase();
+      btn.disabled = !filterText || matching.length === 0;
+      btn.textContent = filterText && matching.length > 0
+        ? `Invalidate "${{ticker}}" (${{matching.length}})`
+        : 'Invalidate';
+    }}
+
+    function setSortDesc(desc) {{
+      sortDesc = desc;
+      renderCacheTable();
+    }}
+
+    document.getElementById('cache-filter').addEventListener('input', e => {{
+      filterText = e.target.value;
+      renderCacheTable();
+    }});
+
+    async function invalidateFiltered() {{
+      const matching = getMatchingRows();
+      const groups = {{}};
+      for (const e of matching) {{
+        groups[`${{e.prefix}}/${{e.ticker}}`] = e;
+      }}
+      await Promise.all(
+        Object.entries(groups).map(([_, e]) =>
+          fetch(`/stats/invalidate-ticker/${{e.prefix}}/${{e.ticker}}`, {{method: 'POST'}})
+        )
+      );
+      const tickers = new Set(matching.map(e => e.ticker.toLowerCase()));
+      CACHE_ENTRIES.splice(0, CACHE_ENTRIES.length,
+        ...CACHE_ENTRIES.filter(e => !tickers.has(e.ticker.toLowerCase()))
+      );
+      renderCacheTable();
+    }}
+
+    renderCacheTable();
   </script>
 </body>
 </html>"""
@@ -289,6 +401,13 @@ def create_app(config: Config) -> FastAPI:
     @app.post("/stats/reset-cache/{prefix}", include_in_schema=False)
     async def stats_reset_cache(prefix: str):
         keys = [k async for k in cache._client.scan_iter(f"{prefix}:*")]
+        if keys:
+            await cache._client.delete(*keys)
+        return JSONResponse({"ok": True, "deleted": len(keys)})
+
+    @app.post("/stats/invalidate-ticker/{prefix}/{ticker}", include_in_schema=False)
+    async def invalidate_ticker(prefix: str, ticker: str):
+        keys = [k async for k in cache._client.scan_iter(f"{prefix}:{ticker}")]
         if keys:
             await cache._client.delete(*keys)
         return JSONResponse({"ok": True, "deleted": len(keys)})

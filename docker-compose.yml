@@ -8,6 +8,20 @@ services:
       timeout: 3s
       retries: 5
 
+  openst:
+    build:
+      context: ../openst
+      target: runtime
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      REDIS_HOST: redis
+    env_file:
+      - path: ../openst/.env
+        required: false
+
   cachest:
     build:
       context: .
@@ -20,6 +34,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      openst:
+        condition: service_started
+    environment:
+      REDIS_HOST: redis
     env_file:
       - path: .env
         required: false
@@ -32,6 +50,10 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      openst:
+        condition: service_started
+    environment:
+      REDIS_HOST: redis
     env_file:
       - path: .env
         required: false
