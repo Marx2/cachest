@@ -179,8 +179,7 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
       <div class="chart">{''.join(bars_html)}
       </div>
       <div class="card-actions">
-        <button class="btn btn-danger" onclick="resetCache(this, '{prefix}')">Reset cache for {prefix}</button>
-      </div>
+        <button class="btn btn-danger" onclick="resetCache(this, '{prefix}')">Reset cache for {prefix}</button>      </div>
     </div>"""
         cards_html.append(card)
 
@@ -214,62 +213,262 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta http-equiv="refresh" content="30">
   <title>cachest / stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
+    :root {{
+      --bg-canvas:      #f1f5f9;
+      --bg-surface:     #ffffff;
+      --bg-surface-2:   #f8fafc;
+      --bg-surface-3:   #f1f5f9;
+      --border-subtle:  rgba(15,23,42,0.08);
+      --border-default: rgba(15,23,42,0.14);
+      --border-strong:  rgba(15,23,42,0.22);
+      --ink-primary:    #0f172a;
+      --ink-secondary:  #475569;
+      --ink-tertiary:   #94a3b8;
+      --ink-muted:      #cbd5e1;
+      --accent:         #2563eb;
+      --accent-hover:   #1d4ed8;
+      --accent-subtle:  rgba(37,99,235,0.08);
+      --accent-ring:    rgba(37,99,235,0.25);
+      --ctrl-bg:        #ffffff;
+      --ctrl-border:    rgba(15,23,42,0.18);
+      --r-sm: 4px; --r-md: 6px; --r-lg: 10px; --r-xl: 14px;
+    }}
+    @media (prefers-color-scheme: dark) {{
+      :root {{
+        --bg-canvas:      #0f172a;
+        --bg-surface:     #1e293b;
+        --bg-surface-2:   #263348;
+        --bg-surface-3:   #2d3d54;
+        --border-subtle:  rgba(241,245,249,0.06);
+        --border-default: rgba(241,245,249,0.10);
+        --border-strong:  rgba(241,245,249,0.16);
+        --ink-primary:    #f1f5f9;
+        --ink-secondary:  #94a3b8;
+        --ink-tertiary:   #64748b;
+        --ink-muted:      #475569;
+        --accent:         #3b82f6;
+        --accent-hover:   #60a5fa;
+        --accent-subtle:  rgba(59,130,246,0.12);
+        --accent-ring:    rgba(59,130,246,0.3);
+        --ctrl-bg:        #1e293b;
+        --ctrl-border:    rgba(241,245,249,0.12);
+      }}
+    }}
     *, *::before, *::after {{ box-sizing: border-box; margin: 0; padding: 0; }}
-    body {{ background: #0f172a; color: #e2e8f0; font-family: system-ui, sans-serif; padding: 2rem; }}
-    h1 {{ font-size: 1.25rem; font-weight: 600; color: #94a3b8; margin-bottom: 1.5rem; letter-spacing: 0.05em; }}
-    .grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 1.25rem; }}
-    .card {{ background: #1e293b; border-radius: 0.75rem; padding: 1.25rem; }}
-    .card-header {{ margin-bottom: 0.75rem; }}
-    .route-path {{ font-size: 1rem; font-weight: 600; color: #f1f5f9; display: block; }}
-    .upstream {{ font-size: 0.75rem; color: #64748b; display: block; margin-top: 0.2rem; word-break: break-all; }}
-    .pills {{ display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 0.75rem; }}
-    .pill {{ padding: 0.2rem 0.6rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; }}
-    .pill-total {{ background: #334155; color: #f1f5f9; }}
-    .pill-hit {{ background: #14532d; color: #22c55e; }}
-    .pill-miss {{ background: #1e3a5f; color: #3b82f6; }}
-    .pill-stale {{ background: #451a03; color: #f59e0b; }}
-    .pill-error {{ background: #450a0a; color: #ef4444; }}
-    .redis-keys {{ font-size: 0.75rem; color: #94a3b8; margin-bottom: 0.75rem; }}
-    .chart {{ display: flex; align-items: flex-end; gap: 2px; height: 60px; padding-bottom: 18px; position: relative; }}
+    body {{
+      background: var(--bg-canvas);
+      color: var(--ink-primary);
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 13px;
+      line-height: 1.5;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+    }}
+    h1 {{
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+      color: var(--ink-primary);
+      margin: 0;
+    }}
+    h2 {{
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--ink-primary);
+      margin-bottom: 12px;
+    }}
+    .header-row {{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 28px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-default);
+    }}
+    .header-title {{ display: flex; flex-direction: column; gap: 2px; }}
+    .header-subtitle {{ font-size: 12px; color: var(--ink-tertiary); }}
+
+    /* Buttons */
+    .btn {{
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px;
+      border-radius: var(--r-md);
+      font-size: 12px; font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+      font-family: inherit;
+      white-space: nowrap;
+    }}
+    .btn:disabled {{ opacity: 0.45; cursor: default; }}
+    .btn-primary {{ background: var(--accent); color: #fff; border-color: var(--accent); }}
+    .btn-primary:not(:disabled):hover {{ background: var(--accent-hover); border-color: var(--accent-hover); }}
+    .btn-secondary {{
+      background: var(--bg-surface-2); color: var(--ink-secondary);
+      border-color: var(--border-default);
+    }}
+    .btn-secondary:not(:disabled):hover {{ background: var(--bg-surface-3); }}
+    .btn-secondary.active {{
+      background: var(--accent-subtle); color: var(--accent);
+      border-color: var(--accent);
+    }}
+    .btn-danger {{
+      background: rgba(220,38,38,0.08); color: #dc2626;
+      border-color: rgba(220,38,38,0.2);
+    }}
+    .btn-danger:not(:disabled):hover {{ background: #dc2626; color: #fff; border-color: #dc2626; }}
+
+    /* Route grid */
+    .grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }}
+    .card {{
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--r-xl);
+      padding: 20px;
+    }}
+    .card-header {{ margin-bottom: 12px; }}
+    .route-path {{ font-size: 14px; font-weight: 600; color: var(--ink-primary); display: block; }}
+    .upstream {{ font-size: 11px; color: var(--ink-tertiary); display: block; margin-top: 3px; word-break: break-all; }}
+
+    /* Pills */
+    .pills {{ display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }}
+    .pill {{
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 11px; font-weight: 600;
+      border: 1px solid transparent;
+    }}
+    .pill-total {{ background: var(--bg-surface-2); color: var(--ink-secondary); border-color: var(--border-default); }}
+    .pill-hit   {{ background: rgba(22,163,74,0.1);  color: #16a34a; border-color: rgba(22,163,74,0.25); }}
+    .pill-miss  {{ background: var(--accent-subtle);  color: var(--accent); border-color: rgba(37,99,235,0.2); }}
+    .pill-stale {{ background: rgba(217,119,6,0.1);  color: #d97706; border-color: rgba(217,119,6,0.25); }}
+    .pill-error {{ background: rgba(220,38,38,0.08); color: #dc2626; border-color: rgba(220,38,38,0.2); }}
+    @media (prefers-color-scheme: dark) {{
+      .pill-hit   {{ background: rgba(22,163,74,0.15);  color: #4ade80; border-color: rgba(74,222,128,0.2); }}
+      .pill-miss  {{ background: var(--accent-subtle);  color: var(--accent); border-color: rgba(59,130,246,0.25); }}
+      .pill-stale {{ background: rgba(217,119,6,0.15);  color: #fbbf24; border-color: rgba(251,191,36,0.2); }}
+      .pill-error {{ background: rgba(220,38,38,0.12); color: #f87171; border-color: rgba(248,113,113,0.2); }}
+    }}
+
+    .redis-keys {{ font-size: 11px; color: var(--ink-tertiary); margin-bottom: 12px; }}
+
+    /* Bar chart */
+    .chart {{
+      display: flex; align-items: flex-end; gap: 2px;
+      height: 52px; padding-bottom: 16px; position: relative;
+    }}
     .bar-wrap {{ display: flex; flex-direction: column; align-items: center; flex: 1; height: 100%; justify-content: flex-end; }}
-    .bar {{ width: 100%; background: #3b82f6; border-radius: 2px 2px 0 0; min-height: 1px; transition: height 0.2s; }}
-    .bar-label {{ font-size: 0.55rem; color: #64748b; margin-top: 2px; white-space: nowrap; }}
-    .card-actions {{ margin-top: 0.75rem; display: flex; gap: 0.5rem; }}
-    .btn {{ padding: 0.3rem 0.75rem; border-radius: 0.375rem; font-size: 0.75rem; font-weight: 600; border: none; cursor: pointer; transition: opacity 0.15s; }}
-    .btn:hover {{ opacity: 0.85; }}
-    .btn-danger {{ background: #7f1d1d; color: #fca5a5; }}
-    .btn-warning {{ background: #451a03; color: #fcd34d; }}
-    .header-row {{ display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }}
-    .cache-browser {{ margin-top: 2rem; }}
-    .cache-browser h2 {{ font-size: 1rem; font-weight: 600; color: #94a3b8; margin-bottom: 1rem; }}
-    .cache-controls {{ display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; }}
-    .cache-controls input {{ background: #1e293b; border: 1px solid #334155; color: #e2e8f0; padding: 0.3rem 0.6rem; border-radius: 0.375rem; font-size: 0.8rem; width: 200px; }}
-    .cache-sort {{ display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }}
-    .cache-table {{ width: 100%; border-collapse: collapse; font-size: 0.8rem; }}
-    .cache-table th, .cache-table td {{ padding: 0.5rem 0.75rem; border-bottom: 1px solid #1e293b; text-align: left; }}
-    .cache-table th {{ color: #64748b; font-weight: 600; background: #1e293b; }}
-    .cache-table tr:hover td {{ background: #1e293b44; }}
+    .bar {{ width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 1px; opacity: 0.7; transition: height 0.2s, opacity 0.12s; }}
+    .bar:hover {{ opacity: 1; }}
+    .bar-label {{ font-size: 9px; color: var(--ink-tertiary); margin-top: 2px; white-space: nowrap; }}
+    .card-actions {{ margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border-subtle); display: flex; gap: 8px; }}
+
+    /* Cache browser */
+    .section-header {{
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 12px;
+    }}
+    .cache-controls {{
+      display: flex; gap: 8px; align-items: center;
+      margin-bottom: 12px; flex-wrap: wrap;
+    }}
+    .cache-controls input {{
+      background: var(--ctrl-bg);
+      border: 1px solid var(--ctrl-border);
+      color: var(--ink-primary);
+      padding: 6px 10px;
+      border-radius: var(--r-md);
+      font-size: 13px;
+      font-family: inherit;
+      width: 220px;
+      outline: none;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }}
+    .cache-controls input:focus {{
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-ring);
+    }}
+    .cache-controls input::placeholder {{ color: var(--ink-muted); }}
+    .sort-group {{ display: flex; gap: 4px; margin-bottom: 12px; }}
+
+    /* Table */
+    .table-wrap {{
+      border: 1px solid var(--border-default);
+      border-radius: var(--r-lg);
+      overflow: hidden;
+    }}
+    .cache-table {{
+      width: 100%; border-collapse: collapse; font-size: 13px;
+    }}
+    .cache-table thead th {{
+      background: var(--bg-surface-2);
+      color: var(--ink-secondary);
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      padding: 10px 16px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-default);
+    }}
+    .cache-table tbody td {{
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      color: var(--ink-primary);
+      vertical-align: middle;
+    }}
+    .cache-table tbody tr:last-child td {{ border-bottom: none; }}
+    .cache-table tbody tr:hover td {{ background: var(--accent-subtle); }}
+    .cell-ticker {{
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      font-size: 13px;
+    }}
+    .cell-route {{ color: var(--ink-secondary); font-size: 12px; }}
+    .cell-date {{ color: var(--ink-secondary); font-size: 12px; white-space: nowrap; }}
+    .cell-value {{
+      font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+      font-size: 11px;
+      color: var(--ink-tertiary);
+      max-width: 320px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }}
   </style>
 </head>
 <body>
   <div class="header-row">
-    <h1>cachest / stats</h1>
-    <button class="btn btn-warning" onclick="resetStats()">Reset statistics</button>
+    <div class="header-title">
+      <h1>cachest</h1>
+      <span class="header-subtitle">stats &amp; cache browser</span>
+    </div>
+    <button class="btn btn-secondary" onclick="resetStats()">Reset statistics</button>
   </div>
   <div class="grid">
     {''.join(cards_html)}
   </div>
-  <div class="cache-browser">
-    <h2>Cache Browser ({len(all_entries)} entries)</h2>
-    <div class="cache-controls">
-      <input id="cache-filter" type="text" placeholder="Filter by ticker…">
-      <button id="invalidate-btn" class="btn btn-danger" disabled onclick="invalidateFiltered()">Invalidate</button>
-    </div>
-    <div class="cache-sort">
-      <button class="btn btn-warning" onclick="setSortDesc(true)">Newest first</button>
-      <button class="btn btn-warning" onclick="setSortDesc(false)">Oldest first</button>
-    </div>
+  <div class="section-header">
+    <h2>Cache Browser <span style="font-weight:400;color:var(--ink-tertiary)">({len(all_entries)} entries)</span></h2>
+  </div>
+  <div class="cache-controls">
+    <input id="cache-filter" type="text" placeholder="Filter by ticker…" autocomplete="off" spellcheck="false">
+    <button id="invalidate-btn" class="btn btn-danger" disabled onclick="invalidateFiltered()">Invalidate</button>
+  </div>
+  <div class="sort-group">
+    <button class="btn btn-secondary active" id="sort-desc" onclick="setSortDesc(true)">Newest first</button>
+    <button class="btn btn-secondary" id="sort-asc" onclick="setSortDesc(false)">Oldest first</button>
+  </div>
+  <div class="table-wrap">
     <table class="cache-table">
       <thead><tr><th>Ticker</th><th>Route</th><th>Cached At</th><th>Value</th></tr></thead>
       <tbody id="cache-tbody"></tbody>
@@ -306,10 +505,10 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
       const tbody = document.getElementById('cache-tbody');
       tbody.innerHTML = rows.map(e => `
         <tr>
-          <td>${{e.ticker}}</td>
-          <td>${{e.prefix}}</td>
-          <td>${{new Date(e.ts * 1000).toLocaleString()}}</td>
-          <td style="font-family:monospace;font-size:0.7rem">${{e.value}}</td>
+          <td class="cell-ticker">${{e.ticker}}</td>
+          <td class="cell-route">${{e.prefix}}</td>
+          <td class="cell-date">${{new Date(e.ts * 1000).toLocaleString()}}</td>
+          <td class="cell-value">${{e.value}}</td>
         </tr>`).join('');
 
       const matching = getMatchingRows();
@@ -323,6 +522,8 @@ async def _render_stats(config: Config, cache: RedisCache) -> str:
 
     function setSortDesc(desc) {{
       sortDesc = desc;
+      document.getElementById('sort-desc').classList.toggle('active', desc);
+      document.getElementById('sort-asc').classList.toggle('active', !desc);
       renderCacheTable();
     }}
 
