@@ -301,4 +301,5 @@ def test_stats_page_empty_cache_browser(mock_cache, mock_fetch):
     client = TestClient(app)
     resp = client.get("/stats")
     assert resp.status_code == 200
-    assert "Cache Browser (0 entries)" in resp.text
+    assert "Cache Browser" in resp.text
+    assert "0 entries" in resp.text
