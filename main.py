@@ -120,6 +120,13 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
         try:
             value = await fetch(url, route.extract, route.json_field)
         except UpstreamError as e:
+            # A 404 means "no data for this key" (e.g. empty calendar window,
+            # unknown symbol) — not a transient outage. Pass it through so
+            # consumers can degrade gracefully; stale caching would be wrong.
+            if e.status_code == 404:
+                logger.info("[not-found] %r returned HTTP 404", e.url)
+                stats.record(route.path, "ERROR")
+                return PlainTextResponse("upstream returned 404 and no cached value available", status_code=404)
             logger.warning("[upstream-error] %r returned HTTP %d — serving stale", e.url, e.status_code)
             try:
                 stale = await cache.get(key, route.cache_ttl)
