@@ -25,16 +25,32 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 CONFIG_PATH = "config.yaml"
 
 
-def _cache_key(path_template: str, path_params: dict[str, str]) -> str:
-    """/dy/{ticker} + {"ticker": "AAPL"} → "dy:AAPL" """
-    first_seg = path_template.lstrip("/").split("/")[0]
-    values = ":".join(path_params.values())
-    return f"{first_seg}:{values}" if values else first_seg
+def _cache_key(
+    path_template: str,
+    path_params: dict[str, str],
+    query_values: dict[str, str] | None = None,
+) -> str:
+    """/dy/{ticker} + {"ticker": "AAPL"} → "dy:AAPL"; /calendar/earnings → "calendar:earnings";
+    query values are appended in declared order → /ohlcv/{ticker}+{start,end} → "ohlcv:AAPL:<start>:<end>" """
+    key = path_template
+    for k, v in path_params.items():
+        key = key.replace(f"{{{k}}}", str(v))
+    parts = [key.strip("/").replace("/", ":")]
+    for v in (query_values or {}).values():
+        parts.append(str(v))
+    return ":".join(parts)
 
 
-def _build_url(template: str, path_params: dict[str, str], api_key: str = "") -> str:
+def _build_url(
+    template: str,
+    path_params: dict[str, str],
+    api_key: str = "",
+    query_values: dict[str, str] | None = None,
+) -> str:
     url = template
     for k, v in path_params.items():
+        url = url.replace(f"{{{k}}}", v)
+    for k, v in (query_values or {}).items():
         url = url.replace(f"{{{k}}}", v)
     return url.replace("{api_key}", api_key)
 
@@ -47,7 +63,15 @@ def _respond(route_path: str, value: str, x_cache: str, **extra_headers) -> Plai
 def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
     async def handler(request: Request) -> PlainTextResponse:
         path_params: dict[str, Any] = dict(request.path_params)
-        key = _cache_key(route.path, path_params)
+        query_values = {p: request.query_params.get(p) for p in route.query_params}
+        missing = [p for p, v in query_values.items() if v is None]
+        if missing:
+            stats.record(route.path, "ERROR")
+            return PlainTextResponse(
+                f"missing required query parameter(s): {', '.join(missing)}",
+                status_code=422,
+            )
+        key = _cache_key(route.path, path_params, {k: v or "" for k, v in query_values.items()})
         force_refresh = request.query_params.get("forceRefresh") == "true"
 
         if not force_refresh:
@@ -92,7 +116,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
                 stats.record(route.path, "ERROR")
                 return PlainTextResponse("daily upstream limit reached", status_code=503)
 
-        url = _build_url(route.url, path_params, route.api_key)
+        url = _build_url(route.url, path_params, route.api_key, {k: v or "" for k, v in query_values.items()})
         try:
             value = await fetch(url, route.extract, route.json_field)
         except UpstreamError as e:
