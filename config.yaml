@@ -121,3 +121,11 @@ routes:
     stale_ttl: 2592000
     fetch_interval: 2
     fetch_max_wait: 4
+
+  - name: OPENST_DIVIDENDS
+    path: /dividends/{ticker}
+    url: "http://openst:8080/dividend/history/{ticker}"
+    cache_ttl: 86400           # 24h — dividend history is static
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4

@@ -21,8 +21,10 @@ async def fetch(url: str, extract: ExtractConfig, json_field: str = "") -> str:
         resp = await client.get(url)
 
     if resp.status_code in (403, 429, 502):
+        raise RateLimitedError(url, resp.status_code)
+    if resp.is_client_error or resp.is_server_error:
+        # Includes 404 ("no data for key") so main can pass it through.
         raise UpstreamError(url, resp.status_code)
-    resp.raise_for_status()
 
     if json_field:
         data = json.loads(resp.text)

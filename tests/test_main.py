@@ -383,3 +383,30 @@ def test_different_query_values_cached_separately(mock_cache, mock_fetch):
         "ohlcv:AAPL:2025-01-01:2026-01-02",
         "ohlcv:AAPL:2025-01-01:2026-01-03",
     }
+
+
+def test_upstream_404_passes_through(mock_cache, mock_fetch):
+    """A 404 from upstream means 'no data' — pass it through, don't 503/502."""
+    from fetcher import UpstreamError
+
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    mock_fetch.side_effect = UpstreamError("http://example.com/1", 404)
+    client = TestClient(app)
+    resp = client.get("/test/1")
+    assert resp.status_code == 404
+
+
+def test_upstream_500_no_stale_returns_503(mock_cache, mock_fetch):
+    """Non-404 upstream errors still fall back to stale-then-503."""
+    from fetcher import UpstreamError
+
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    mock_fetch.side_effect = UpstreamError("http://example.com/1", 500)
+    mock_cache.get = AsyncMock(side_effect=CacheMiss("test:1"))
+    client = TestClient(app)
+    resp = client.get("/test/1")
+    assert resp.status_code == 503

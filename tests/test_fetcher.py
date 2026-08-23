@@ -40,3 +40,12 @@ async def test_fetch_returns_text_on_200():
     )
     result = await fetch("http://example.com/test", ExtractConfig())
     assert result == "42.5%"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fetch_raises_upstream_error_on_404():
+    respx.get("http://example.com/test").mock(return_value=httpx.Response(404))
+    with pytest.raises(UpstreamError) as exc_info:
+        await fetch("http://example.com/test", ExtractConfig())
+    assert exc_info.value.status_code == 404
