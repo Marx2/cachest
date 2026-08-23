@@ -303,3 +303,83 @@ def test_stats_page_empty_cache_browser(mock_cache, mock_fetch):
     assert resp.status_code == 200
     assert "Cache Browser" in resp.text
     assert "0 entries" in resp.text
+
+
+# ---------------------------------------------------------------------------
+# query-param routes (openst instruments surface)
+# ---------------------------------------------------------------------------
+
+
+from main import _build_url, _cache_key
+
+
+def test_cache_key_substitutes_path_and_query_params():
+    assert _cache_key("/ohlcv/{ticker}", {"ticker": "AAPL"}, {"start": "2025-01-01", "end": "2026-01-01"}) == \
+        "ohlcv:AAPL:2025-01-01:2026-01-01"
+
+
+def test_cache_key_no_path_params_routes_dont_collide():
+    assert _cache_key("/calendar/earnings", {}) == "calendar:earnings"
+    assert _cache_key("/calendar/dividend", {}) == "calendar:dividend"
+    assert _cache_key("/dy/{ticker}", {"ticker": "AAPL"}) == "dy:AAPL"
+
+
+def test_build_url_substitutes_query_values():
+    url = _build_url(
+        "http://up/{ticker}?statement={statement}&period={period}",
+        {"ticker": "AAPL"},
+        "",
+        {"statement": "cash", "period": "quarter"},
+    )
+    assert url == "http://up/AAPL?statement=cash&period=quarter"
+
+
+def _query_config() -> Config:
+    return _make_config(
+        path="/ohlcv/{ticker}",
+        url="http://example.com/ohlcv/{ticker}?start={start}&end={end}",
+        query_params=["start", "end"],
+    )
+
+
+def test_missing_query_param_returns_422(mock_cache, mock_fetch):
+    cfg = _query_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+
+    resp = client.get("/ohlcv/AAPL?start=2025-01-01")
+    assert resp.status_code == 422
+    assert "end" in resp.text
+    mock_fetch.assert_not_called()
+    mock_cache.get.assert_not_called()
+
+
+def test_query_params_forwarded_to_upstream(mock_cache, mock_fetch):
+    cfg = _query_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+
+    resp = client.get("/ohlcv/AAPL?start=2025-01-01&end=2026-01-01")
+    assert resp.status_code == 200
+    assert resp.headers["x-cache"] == "MISS"
+    assert mock_fetch.call_args.args[0] == \
+        "http://example.com/ohlcv/AAPL?start=2025-01-01&end=2026-01-01"
+
+
+def test_different_query_values_cached_separately(mock_cache, mock_fetch):
+    cfg = _query_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    mock_cache.get = AsyncMock(side_effect=CacheMiss("k"))
+    client = TestClient(app)
+
+    client.get("/ohlcv/AAPL?start=2025-01-01&end=2026-01-02")
+    client.get("/ohlcv/AAPL?start=2025-01-01&end=2026-01-03")
+
+    keys = {call.args[0] for call in mock_cache.set.call_args_list}
+    assert keys == {
+        "ohlcv:AAPL:2025-01-01:2026-01-02",
+        "ohlcv:AAPL:2025-01-01:2026-01-03",
+    }

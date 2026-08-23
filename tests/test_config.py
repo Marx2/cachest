@@ -69,3 +69,26 @@ routes:
     f.write_text(yaml)
     cfg = load(f)
     assert cfg.routes[0].stale_ttl == 2592000
+
+
+QUERY_YAML = """
+redis:
+  host: localhost
+routes:
+  - path: /ohlcv/{ticker}
+    url: "http://example.com/ohlcv/{ticker}?start={start}&end={end}"
+    query_params: [start, end]
+    cache_ttl: 60
+"""
+
+def test_query_params_parsed(tmp_path):
+    f = tmp_path / "config.yaml"
+    f.write_text(QUERY_YAML)
+    cfg = load(f)
+    assert cfg.routes[0].query_params == ["start", "end"]
+
+def test_query_params_default_empty(tmp_path):
+    f = tmp_path / "config.yaml"
+    f.write_text(YAML)
+    cfg = load(f)
+    assert all(r.query_params == [] for r in cfg.routes)

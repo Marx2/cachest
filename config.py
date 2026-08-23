@@ -24,6 +24,7 @@ class RouteConfig:
     fetch_interval: float = 2.0
     fetch_max_wait: float = 4.0
     stale_ttl: int = 2592000
+    query_params: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -74,6 +75,7 @@ def load(path: str | Path) -> Config:
             fetch_interval=float(r.get("fetch_interval", 2.0)),
             fetch_max_wait=float(r.get("fetch_max_wait", 4.0)),
             stale_ttl=int(r.get("stale_ttl", 2592000)),
+            query_params=list(r.get("query_params", [])),
         ))
 
     return Config(redis=redis_cfg, routes=routes)
