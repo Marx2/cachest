@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import time
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -615,6 +616,16 @@ def create_app(config: Config) -> FastAPI:
     @app.get("/favicon.ico", include_in_schema=False)
     async def favicon():
         return Response(_favicon, media_type="image/svg+xml")
+
+    @app.get("/__meta", include_in_schema=False)
+    async def meta():
+        return JSONResponse(
+            {
+                "service": "cachest",
+                "impl": "real",
+                "version": os.environ.get("APP_VERSION") or "0.0.0-dev",
+            }
+        )
 
     @app.get("/", include_in_schema=False)
     async def root():

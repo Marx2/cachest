@@ -410,3 +410,16 @@ def test_upstream_500_no_stale_returns_503(mock_cache, mock_fetch):
     client = TestClient(app)
     resp = client.get("/test/1")
     assert resp.status_code == 503
+
+
+def test_meta_reports_service_and_version(mock_cache, monkeypatch):
+    monkeypatch.delenv("APP_VERSION", raising=False)
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(_make_config())
+    client = TestClient(app)
+    resp = client.get("/__meta")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["service"] == "cachest"
+    assert body["impl"] == "real"
+    assert body["version"] == "0.0.0-dev"

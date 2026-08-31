@@ -16,6 +16,9 @@ CMD ["python", "-m", "pytest", "tests/", "-v"]
 # Stage 3: runtime (default)
 FROM python:3.12-slim AS runtime
 WORKDIR /app
+# APP_VERSION is passed by CI (release tag); falls back to 0.0.0-dev at runtime
+ARG APP_VERSION=""
+ENV APP_VERSION=${APP_VERSION}
 COPY --from=builder /install /usr/local
 COPY *.py config.yaml favicon.svg ./
 EXPOSE 8080
