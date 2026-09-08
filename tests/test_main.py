@@ -368,6 +368,39 @@ def test_query_params_forwarded_to_upstream(mock_cache, mock_fetch):
         "http://example.com/ohlcv/AAPL?start=2025-01-01&end=2026-01-01"
 
 
+def _news_config() -> Config:
+    return _make_config(
+        path="/news/company/{ticker}",
+        url="http://up/news/company/{ticker}?start_date={start_date}&limit={limit}",
+        query_params=["start_date", "limit"],
+    )
+
+
+def test_news_query_params_forwarded_to_upstream(mock_cache, mock_fetch):
+    cfg = _news_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+
+    resp = client.get("/news/company/AAPL?start_date=2026-08-29&limit=50")
+    assert resp.status_code == 200
+    assert resp.headers["x-cache"] == "MISS"
+    assert mock_fetch.call_args.args[0] == \
+        "http://up/news/company/AAPL?start_date=2026-08-29&limit=50"
+
+
+def test_news_missing_query_param_returns_422(mock_cache, mock_fetch):
+    cfg = _news_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+
+    resp = client.get("/news/company/AAPL?start_date=2026-08-29")
+    assert resp.status_code == 422
+    assert "limit" in resp.text
+    mock_fetch.assert_not_called()
+
+
 def test_different_query_values_cached_separately(mock_cache, mock_fetch):
     cfg = _query_config()
     with patch("main.RedisCache", return_value=mock_cache):
