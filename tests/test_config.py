@@ -92,3 +92,19 @@ def test_query_params_default_empty(tmp_path):
     f.write_text(YAML)
     cfg = load(f)
     assert all(r.query_params == [] for r in cfg.routes)
+
+
+# ---------------------------------------------------------------------------
+# stock-news proposal N2 — real config.yaml news route
+# ---------------------------------------------------------------------------
+
+
+def test_real_config_has_company_news_route():
+    cfg = load("config.yaml")
+    news = next(r for r in cfg.routes if r.path == "/news/company/{ticker}")
+    assert news.name == "OPENST_NEWS"
+    assert news.url == "http://openst:8080/news/company/{ticker}"
+    assert news.cache_ttl == 3600        # 1h fresh
+    assert news.stale_ttl == 86400       # 24h stale fallback
+    assert news.fetch_interval == 300    # 5min
+    assert news.fetch_max_wait == 4.0
