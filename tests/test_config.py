@@ -103,7 +103,9 @@ def test_real_config_has_company_news_route():
     cfg = load("config.yaml")
     news = next(r for r in cfg.routes if r.path == "/news/company/{ticker}")
     assert news.name == "OPENST_NEWS"
-    assert news.url == "http://openst:8080/news/company/{ticker}"
+    assert news.url == \
+        "http://openst:8080/news/company/{ticker}?start_date={start_date}&limit={limit}"
+    assert news.query_params == ["start_date", "limit"]
     assert news.cache_ttl == 3600        # 1h fresh
     assert news.stale_ttl == 86400       # 24h stale fallback
     assert news.fetch_interval == 300    # 5min
