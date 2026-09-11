@@ -1,4 +1,6 @@
 import pytest
+import httpx
+import respx
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
@@ -456,3 +458,42 @@ def test_meta_reports_service_and_version(mock_cache, monkeypatch):
     assert body["service"] == "cachest"
     assert body["impl"] == "real"
     assert body["version"] == "0.0.0-dev"
+
+
+def test_health_returns_ok(mock_cache, mock_fetch):
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+    resp = client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_metrics_returns_prometheus_text(mock_cache, mock_fetch):
+    cfg = _make_config()
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+    client.get("/health")
+    resp = client.get("/metrics")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/plain")
+    assert "http_server_request_duration_seconds" in resp.text
+
+
+def test_metrics_includes_client_duration_per_upstream_host(mock_cache):
+    """D56 step 7: client metric is bucketed per upstream host (server_address)."""
+    cfg = _make_config(url="http://openst/{id}")
+    with patch("main.RedisCache", return_value=mock_cache):
+        app = create_app(cfg)
+    client = TestClient(app)
+    with respx.mock:
+        respx.get("http://openst/1").mock(return_value=httpx.Response(200, text="result_value"))
+        resp = client.get("/test/1")
+    assert resp.status_code == 200
+    assert resp.headers["x-cache"] == "MISS"
+    metrics = client.get("/metrics")
+    assert metrics.status_code == 200
+    assert "http_client_request_duration_seconds" in metrics.text
+    assert 'server_address="openst"' in metrics.text
