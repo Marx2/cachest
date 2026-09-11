@@ -11,6 +11,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
+from pythonjsonlogger.json import JsonFormatter
 
 load_dotenv()
 
@@ -18,10 +19,20 @@ import stats
 from cache import CacheMiss, CacheStale, RedisCache
 from config import Config, RouteConfig, load
 from fetcher import UpstreamError, fetch
+from otel import setup_otel
 from rate_limiter import RateLimiter
 
 logger = logging.getLogger("cachest")
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
+logger.setLevel(logging.INFO)
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(
+        JsonFormatter(
+            "%(asctime)s %(levelname)s %(name)s %(message)s",
+            rename_fields={"asctime": "timestamp", "levelname": "level", "name": "service"},
+        )
+    )
+    logger.addHandler(_handler)
 
 CONFIG_PATH = "config.yaml"
 
@@ -610,6 +621,27 @@ def create_app(config: Config) -> FastAPI:
         await cache.close()
 
     app = FastAPI(lifespan=lifespan)
+    setup_otel(app, "cachest")
+
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        elapsed = (time.perf_counter() - start) * 1000
+        logger.info(
+            "http_request",
+            extra={
+                "method": request.method,
+                "path": request.url.path,
+                "status_code": response.status_code,
+                "duration_ms": round(elapsed, 1),
+            },
+        )
+        return response
+
+    @app.get("/health", include_in_schema=False)
+    async def health():
+        return JSONResponse({"status": "ok"})
 
     _favicon = (Path(__file__).parent / "favicon.svg").read_bytes()
 
