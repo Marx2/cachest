@@ -14,6 +14,7 @@ routes:
     cache_ttl: 60
     fetch_interval: 3.5
     fetch_max_wait: 7.0
+    fetch_timeout: 120.0
   - path: /defaults/{id}
     url: "http://example.com/defaults/{id}"
     cache_ttl: 60
@@ -25,6 +26,7 @@ def test_fetch_interval_parsed(tmp_path):
     cfg = load(f)
     assert cfg.routes[0].fetch_interval == 3.5
     assert cfg.routes[0].fetch_max_wait == 7.0
+    assert cfg.routes[0].fetch_timeout == 120.0
 
 def test_fetch_interval_defaults(tmp_path):
     f = tmp_path / "config.yaml"
@@ -32,6 +34,7 @@ def test_fetch_interval_defaults(tmp_path):
     cfg = load(f)
     assert cfg.routes[1].fetch_interval == 2.0
     assert cfg.routes[1].fetch_max_wait == 4.0
+    assert cfg.routes[1].fetch_timeout == 15.0  # default
 
 
 def test_stale_ttl_explicit(tmp_path):

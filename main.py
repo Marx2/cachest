@@ -130,7 +130,7 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter):
 
         url = _build_url(route.url, path_params, route.api_key, {k: v or "" for k, v in query_values.items()})
         try:
-            value = await fetch(url, route.extract, route.json_field)
+            value = await fetch(url, route.extract, route.json_field, timeout=route.fetch_timeout)
         except UpstreamError as e:
             # A 404 means "no data for this key" (e.g. empty calendar window,
             # unknown symbol) — not a transient outage. Pass it through so
