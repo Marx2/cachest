@@ -86,6 +86,7 @@ routes:
     stale_ttl: 2592000
     fetch_interval: 2
     fetch_max_wait: 4
+    fetch_timeout: 120         # biznesradar multi-page scrape can take ~20s
 
   - name: OPENST_OHLCV_FUNDS
     path: /ohlcv/fund/{ticker}
@@ -95,6 +96,7 @@ routes:
     stale_ttl: 2592000
     fetch_interval: 60         # 60s min between upstream fetches
     fetch_max_wait: 4
+    fetch_timeout: 120         # biznesradar multi-page scrape can take ~20s
 
   - name: OPENST_FUNDAMENTALS
     path: /fundamentals/{ticker}

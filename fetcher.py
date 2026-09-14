@@ -16,8 +16,8 @@ class RateLimitedError(UpstreamError):
     pass
 
 
-async def fetch(url: str, extract: ExtractConfig, json_field: str = "") -> str:
-    async with httpx.AsyncClient(timeout=15.0, follow_redirects=True) as client:
+async def fetch(url: str, extract: ExtractConfig, json_field: str = "", timeout: float = 15.0) -> str:
+    async with httpx.AsyncClient(timeout=timeout, follow_redirects=True) as client:
         resp = await client.get(url)
 
     if resp.status_code in (403, 429, 502):
