@@ -110,3 +110,21 @@ def test_real_config_has_company_news_route():
     assert news.stale_ttl == 86400       # 24h stale fallback
     assert news.fetch_interval == 300    # 5min
     assert news.fetch_max_wait == 4.0
+
+
+# ---------------------------------------------------------------------------
+# D77 funds/bonds — real config.yaml OPENST_OHLCV_FUNDS route
+# ---------------------------------------------------------------------------
+
+
+def test_real_config_has_ohlcv_funds_route():
+    cfg = load("config.yaml")
+    fund = next(r for r in cfg.routes if r.path == "/ohlcv/fund/{ticker}")
+    assert fund.name == "OPENST_OHLCV_FUNDS"
+    assert fund.url == \
+        "http://openst:8080/price/ohlcv/{ticker}?start={start}&end={end}"
+    assert fund.query_params == ["start", "end"]
+    assert fund.cache_ttl == 86400       # 24h — NAV updates once per business day
+    assert fund.stale_ttl == 2592000
+    assert fund.fetch_interval == 60     # 60s min between upstream fetches
+    assert fund.fetch_max_wait == 4.0
