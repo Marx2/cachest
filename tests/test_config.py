@@ -131,3 +131,28 @@ def test_real_config_has_ohlcv_funds_route():
     assert fund.stale_ttl == 2592000
     assert fund.fetch_interval == 60     # 60s min between upstream fetches
     assert fund.fetch_max_wait == 4.0
+
+
+# ---------------------------------------------------------------------------
+# D78 crypto — real config.yaml OPENST_CRYPTO_OHLCV / OPENST_CRYPTO_QUOTE
+# ---------------------------------------------------------------------------
+
+
+def test_real_config_has_crypto_ohlcv_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/crypto/ohlcv/{pair}")
+    assert route.name == "OPENST_CRYPTO_OHLCV"
+    assert route.url == \
+        "http://openst:8080/crypto/ohlcv/{pair}?start={start}&end={end}"
+    assert route.query_params == ["start", "end"]
+    assert route.cache_ttl == 21600      # 6h — mirrors OPENST_OHLCV
+    assert route.stale_ttl == 2592000
+
+
+def test_real_config_has_crypto_quote_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/crypto/quote/{pair}")
+    assert route.name == "OPENST_CRYPTO_QUOTE"
+    assert route.url == "http://openst:8080/crypto/quote/{pair}"
+    assert route.cache_ttl == 21600      # 6h — daily prices only
+    assert route.stale_ttl == 2592000

@@ -98,6 +98,23 @@ routes:
     fetch_max_wait: 4
     fetch_timeout: 120         # biznesradar multi-page scrape can take ~20s
 
+  - name: OPENST_CRYPTO_OHLCV
+    path: /crypto/ohlcv/{pair}
+    url: "http://openst:8080/crypto/ohlcv/{pair}?start={start}&end={end}"
+    query_params: [start, end]
+    cache_ttl: 21600           # 6h — mirrors OPENST_OHLCV
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
+  - name: OPENST_CRYPTO_QUOTE
+    path: /crypto/quote/{pair}
+    url: "http://openst:8080/crypto/quote/{pair}"
+    cache_ttl: 21600           # 6h — daily prices only
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
   - name: OPENST_FUNDAMENTALS
     path: /fundamentals/{ticker}
     url: "http://openst:8080/equity/fundamentals/{ticker}?statement={statement}&period={period}"
