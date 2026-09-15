@@ -1,7 +1,7 @@
 {
   "/Users/i318088/prv/pfire/cachest/config.py": {
-    "mtime": 1787478391.8618782,
-    "hash": "9a3e4f62efe0737be80ffc798a918fe5"
+    "mtime": 1789418852.101481,
+    "hash": "5f3c955f41e21fe323f2c9fe358e9988"
   },
   "/Users/i318088/prv/pfire/cachest/rate_limiter.py": {
     "mtime": 1778449760.1795955,
@@ -16,52 +16,56 @@
     "hash": "f1f3d3efca1df1f3e4d1f046d3f1f803"
   },
   "/Users/i318088/prv/pfire/cachest/main.py": {
-    "mtime": 1787478553.4563107,
-    "hash": "9d76d226b6c701be928c85b39f09803f"
+    "mtime": 1789418865.3070183,
+    "hash": "792c0f0b08914202916c0c2554982c0b"
+  },
+  "/Users/i318088/prv/pfire/cachest/otel.py": {
+    "mtime": 1789103603.4942765,
+    "hash": "cf80f2e520b88f65240a745444168b1d"
   },
   "/Users/i318088/prv/pfire/cachest/fetcher.py": {
-    "mtime": 1778692281.4539437,
-    "hash": "78f0906363343f5875623177146ef4fa"
+    "mtime": 1789418860.771967,
+    "hash": "632a83eb4b919873cadc0bdb9ad27f3c"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_stats.py": {
     "mtime": 1778453677.8557081,
     "hash": "cb7370182748d42cf12cb5f417892417"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_config.py": {
-    "mtime": 1787478460.0325813,
-    "hash": "24bd15c59004030079c28cac82d73cec"
+    "mtime": 1789487744.1475124,
+    "hash": "96915fc16df6abe2ed756939ecb25cc4"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_rate_limiter.py": {
     "mtime": 1778449772.4870095,
     "hash": "44a980ea323f6ba6fad9f839cbc3ca25"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_fetcher.py": {
-    "mtime": 1778448912.448441,
-    "hash": "6aabb30eb6d9217cf0e4f9d7423e057a"
+    "mtime": 1789418886.4790173,
+    "hash": "1bf4189008685b816333a1004c731944"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_main.py": {
-    "mtime": 1787478480.6999414,
-    "hash": "6f1d8c872ddd4298e86076c783aa869f"
+    "mtime": 1789103627.9031184,
+    "hash": "ab71a0cc00741da447cefcd3b87d3ffe"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_cache.py": {
     "mtime": 1779826720.4556034,
     "hash": "c9c425a127a6f470c10622872a70f4be"
   },
   "/Users/i318088/prv/pfire/cachest/requirements.txt": {
-    "mtime": 1778691726.2927005,
-    "hash": "f6e8ae29565dfc085fbf8f4182451a70"
+    "mtime": 1789103597.4746711,
+    "hash": "9eeeee2d08697250ae7a2e80d9434c02"
   },
   "/Users/i318088/prv/pfire/cachest/config.yaml": {
-    "mtime": 1787478437.206664,
-    "hash": "b43b59f2ca9cf63279c942fd9a23b67c"
+    "mtime": 1789487739.75348,
+    "hash": "891156ce05aa72cd128502d4802f05bb"
   },
   "/Users/i318088/prv/pfire/cachest/readme.md": {
     "mtime": 1778691777.0963295,
     "hash": "adafbcf90d366891a6f1ad02e8c53f3a"
   },
   "/Users/i318088/prv/pfire/cachest/docker-compose.yml": {
-    "mtime": 1779826635.6153715,
-    "hash": "d1980fbc6424181d55abad2376a16404"
+    "mtime": 1787657291.3587382,
+    "hash": "56db7d710106e2f8592ac5415a62fecf"
   },
   "/Users/i318088/prv/pfire/cachest/CLAUDE.md": {
     "mtime": 1778618724.087582,
