@@ -156,3 +156,21 @@ def test_real_config_has_crypto_quote_route():
     assert route.url == "http://openst:8080/crypto/quote/{pair}"
     assert route.cache_ttl == 21600      # 6h — daily prices only
     assert route.stale_ttl == 2592000
+
+
+def test_real_config_has_crypto_search_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/crypto/search/{query}")
+    assert route.name == "OPENST_CRYPTO_SEARCH"
+    assert route.url == "http://openst:8080/crypto/search/{query}"
+    assert route.cache_ttl == 604800      # 7d — universe changes rarely
+    assert route.stale_ttl == 2592000
+
+
+def test_real_config_has_crypto_profile_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/crypto/profile/{pair}")
+    assert route.name == "OPENST_CRYPTO_PROFILE"
+    assert route.url == "http://openst:8080/crypto/profile/{pair}"
+    assert route.cache_ttl == 21600       # 6h — matches OPENST_CRYPTO_QUOTE
+    assert route.stale_ttl == 2592000

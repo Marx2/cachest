@@ -115,6 +115,22 @@ routes:
     fetch_interval: 2
     fetch_max_wait: 4
 
+  - name: OPENST_CRYPTO_SEARCH
+    path: /crypto/search/{query}
+    url: "http://openst:8080/crypto/search/{query}"
+    cache_ttl: 604800          # 7d — universe changes rarely (matches OPENST_SEARCH)
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
+  - name: OPENST_CRYPTO_PROFILE
+    path: /crypto/profile/{pair}
+    url: "http://openst:8080/crypto/profile/{pair}"
+    cache_ttl: 21600           # 6h — matches OPENST_CRYPTO_QUOTE
+    stale_ttl: 2592000
+    fetch_interval: 2
+    fetch_max_wait: 4
+
   - name: OPENST_FUNDAMENTALS
     path: /fundamentals/{ticker}
     url: "http://openst:8080/equity/fundamentals/{ticker}?statement={statement}&period={period}"
