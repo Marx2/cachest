@@ -174,3 +174,29 @@ def test_real_config_has_crypto_profile_route():
     assert route.url == "http://openst:8080/crypto/profile/{pair}"
     assert route.cache_ttl == 21600       # 6h — matches OPENST_CRYPTO_QUOTE
     assert route.stale_ttl == 2592000
+
+
+# ---------------------------------------------------------------------------
+# D79 retail savings bonds — real config.yaml fixed-income routes
+# ---------------------------------------------------------------------------
+
+
+def test_real_config_has_bond_ohlcv_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/fixedincome/ohlcv/{symbol}")
+    assert route.name == "OPENST_BOND_OHLCV"
+    assert route.url == \
+        "http://openst:8080/fixedincome/ohlcv/{symbol}?start={start}&end={end}"
+    assert route.query_params == ["start", "end"]
+    assert route.cache_ttl == 21600       # 6h — computed daily prices
+    assert route.stale_ttl == 2592000
+
+
+def test_real_config_has_bond_profile_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/fixedincome/profile/{symbol}")
+    assert route.name == "OPENST_BOND_PROFILE"
+    assert route.url == "http://openst:8080/fixedincome/profile/{symbol}"
+    assert route.cache_ttl == 86400       # 24h — static bond metadata
+    assert route.stale_ttl == 2592000
+    assert route.fetch_interval == 60
