@@ -200,3 +200,13 @@ def test_real_config_has_bond_profile_route():
     assert route.cache_ttl == 86400       # 24h — static bond metadata
     assert route.stale_ttl == 2592000
     assert route.fetch_interval == 60
+
+
+def test_real_config_has_bond_search_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/fixedincome/search/{query}")
+    assert route.name == "OPENST_BOND_SEARCH"
+    assert route.url == "http://openst:8080/fixedincome/search/{query}"
+    assert route.cache_ttl == 3600        # 1h — catalogue moves daily
+    assert route.stale_ttl == 2592000
+    assert route.fetch_interval == 2
