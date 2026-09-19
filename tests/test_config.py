@@ -192,6 +192,16 @@ def test_real_config_has_bond_ohlcv_route():
     assert route.stale_ttl == 2592000
 
 
+def test_real_config_has_bond_quote_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/fixedincome/quote/{symbol}")
+    assert route.name == "OPENST_BOND_QUOTE"
+    assert route.url == "http://openst:8080/fixedincome/quote/{symbol}"
+    assert route.cache_ttl == 21600       # 6h — mirrors OPENST_BOND_OHLCV
+    assert route.stale_ttl == 2592000
+    assert route.fetch_interval == 2
+
+
 def test_real_config_has_bond_profile_route():
     cfg = load("config.yaml")
     route = next(r for r in cfg.routes if r.path == "/fixedincome/profile/{symbol}")
