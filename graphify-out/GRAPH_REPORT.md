@@ -1,16 +1,16 @@
-# Graph Report - cachest  (2026-09-15)
+# Graph Report - cachest  (2026-09-20)
 
 ## Corpus Check
-- 17 files · ~10,665 words
+- 17 files · ~11,109 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 296 nodes · 419 edges · 17 communities (14 shown, 3 thin omitted)
-- Extraction: 80% EXTRACTED · 20% INFERRED · 0% AMBIGUOUS · INFERRED: 84 edges (avg confidence: 0.8)
+- 302 nodes · 431 edges · 18 communities (15 shown, 3 thin omitted)
+- Extraction: 79% EXTRACTED · 21% INFERRED · 0% AMBIGUOUS · INFERRED: 90 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `2cd4c38e`
+- Built from commit: `550dfbf5`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -31,11 +31,12 @@
 - [[_COMMUNITY_Community 14|Community 14]]
 - [[_COMMUNITY_Community 15|Community 15]]
 - [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `create_app()` - 30 edges
 2. `_make_config()` - 26 edges
-3. `load()` - 17 edges
+3. `load()` - 23 edges
 4. `cachest — HTTP Caching Proxy` - 13 edges
 5. `UpstreamError` - 11 edges
 6. `Task 5: Build Docker image and test locally` - 11 edges
@@ -61,15 +62,15 @@
 - **Stale Fallback Triggers (rate-limit or upstream error)** — rate_limiter_ratelimiter_acquire, fetcher_upstreamerror, cache_cachestale, main_handler [EXTRACTED 1.00]
 - **Stats In-Process + Redis Persistence Flow** — stats_record, stats__persist, stats_load_from_redis, stats_routestats [EXTRACTED 1.00]
 
-## Communities (17 total, 3 thin omitted)
+## Communities (18 total, 3 thin omitted)
 
 ### Community 0 - "App Core & Routing"
 Cohesion: 0.07
 Nodes (52): create_app(), _make_config(), _news_config(), _query_config(), When acquire() returns False and no stale exists, return 503., When acquire() returns False and no stale exists, return 503., On UpstreamError, serve stale from cache., On UpstreamError, serve stale from cache. (+44 more)
 
 ### Community 1 - "Fetcher & Config Loading"
-Cohesion: 0.05
-Nodes (38): code:python (import pytest), code:python (import asyncio), code:bash (pytest tests/test_rate_limiter.py -v), code:bash (git add rate_limiter.py tests/test_rate_limiter.py), code:python (import pytest), code:bash (pip install respx --quiet), code:python (import httpx), code:bash (pytest tests/test_fetcher.py -v) (+30 more)
+Cohesion: 0.07
+Nodes (27): code:python (import pytest), code:python (import asyncio), code:bash (pytest tests/test_rate_limiter.py -v), code:bash (git add rate_limiter.py tests/test_rate_limiter.py), code:python (import pytest), code:bash (pip install respx --quiet), code:python (import httpx), code:bash (pytest tests/test_fetcher.py -v) (+19 more)
 
 ### Community 2 - "Stats Tests"
 Cohesion: 0.08
@@ -80,12 +81,12 @@ Cohesion: 0.1
 Nodes (25): CacheMiss, CacheStale, RedisCache.close, RedisCache.get, RedisCache.scan_prefix, RedisCache.set, _build_url, _cache_key (+17 more)
 
 ### Community 4 - "Cache Layer & Request Flow"
-Cohesion: 0.14
-Nodes (11): CacheMiss, CacheStale, Return raw stored values for all keys matching prefix:*, Return [(key, raw_value)] for all keys matching prefix:*, RedisCache, Exception, mock_cache(), On UpstreamError with no stale, return 503. (+3 more)
+Cohesion: 0.16
+Nodes (22): Config, load(), RedisConfig, RouteConfig, test_fetch_interval_defaults(), test_fetch_interval_parsed(), test_query_params_default_empty(), test_query_params_parsed() (+14 more)
 
 ### Community 5 - "Rate Limiter"
-Cohesion: 0.2
-Nodes (16): Config, load(), RedisConfig, RouteConfig, test_fetch_interval_defaults(), test_fetch_interval_parsed(), test_query_params_default_empty(), test_query_params_parsed() (+8 more)
+Cohesion: 0.14
+Nodes (11): CacheMiss, CacheStale, Return raw stored values for all keys matching prefix:*, Return [(key, raw_value)] for all keys matching prefix:*, RedisCache, Exception, mock_cache(), On UpstreamError with no stale, return 503. (+3 more)
 
 ### Community 7 - "Stats & Lifespan"
 Cohesion: 0.24
@@ -105,13 +106,17 @@ Nodes (9): _build_url(), _cache_key(), make_handler(), /dy/{ticker} + {"ticker":
 
 ### Community 12 - "Community 12"
 Cohesion: 0.18
-Nodes (10): Changes to `fetcher.py`, Changes to `main.py`, code:yaml (routes:), code:python (class RateLimiter:), code:block3 (cache HIT  →  return HIT (unchanged)), Config Changes, Files Touched, Goal (+2 more)
+Nodes (11): code:bash (cd /Users/i318088/prv/pfire/cachest), code:bash (docker compose up -d), code:bash (docker compose ps), code:bash (curl -s http://localhost:8080/docs | head -5), code:bash (curl -v http://localhost:8080/dy/AAPL 2>&1 | grep -E "X-Cach), code:bash (curl -v http://localhost:8080/dy/AAPL 2>&1 | grep -E "X-Cach), code:bash (curl -v "http://localhost:8080/dy/AAPL?forceRefresh=true" 2>), code:bash (docker compose logs cachest | tail -20) (+3 more)
 
 ### Community 13 - "Community 13"
+Cohesion: 0.18
+Nodes (10): Changes to `fetcher.py`, Changes to `main.py`, code:yaml (routes:), code:python (class RateLimiter:), code:block3 (cache HIT  →  return HIT (unchanged)), Config Changes, Files Touched, Goal (+2 more)
+
+### Community 14 - "Community 14"
 Cohesion: 0.31
 Nodes (7): _delete_all_stats(), get(), load_from_redis(), _persist(), record(), reset_all(), RouteStats
 
-### Community 14 - "Community 14"
+### Community 15 - "Community 15"
 Cohesion: 0.67
 Nodes (3): _ensure_otel(), One MeterProvider per process, shared by every app instance.      create_app() m, setup_otel()
 
@@ -123,17 +128,17 @@ Nodes (3): _ensure_otel(), One MeterProvider per process, shared by every app in
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `create_app()` connect `App Core & Routing` to `Stats Module`, `Assets`, `Cache Layer & Request Flow`, `Community 14`?**
+- **Why does `create_app()` connect `App Core & Routing` to `Stats Module`, `Assets`, `Rate Limiter`, `Community 15`?**
   _High betweenness centrality (0.145) - this node is a cross-community bridge._
-- **Why does `RedisCache` connect `Cache Layer & Request Flow` to `App Core & Routing`, `Cache Module`?**
+- **Why does `RedisCache` connect `Rate Limiter` to `App Core & Routing`, `Cache Module`?**
   _High betweenness centrality (0.075) - this node is a cross-community bridge._
 - **Why does `_make_config()` connect `App Core & Routing` to `Cache Layer & Request Flow`, `Rate Limiter`?**
-  _High betweenness centrality (0.061) - this node is a cross-community bridge._
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **Are the 28 inferred relationships involving `create_app()` (e.g. with `RedisCache` and `setup_otel()`) actually correct?**
   _`create_app()` has 28 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 3 inferred relationships involving `_make_config()` (e.g. with `RouteConfig` and `Config`) actually correct?**
   _`_make_config()` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **Are the 12 inferred relationships involving `load()` (e.g. with `test_fetch_interval_parsed()` and `test_fetch_interval_defaults()`) actually correct?**
-  _`load()` has 12 INFERRED edges - model-reasoned connections that need verification._
+- **Are the 18 inferred relationships involving `load()` (e.g. with `test_fetch_interval_parsed()` and `test_fetch_interval_defaults()`) actually correct?**
+  _`load()` has 18 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 6 inferred relationships involving `UpstreamError` (e.g. with `ExtractConfig` and `test_upstream_error_returns_stale()`) actually correct?**
   _`UpstreamError` has 6 INFERRED edges - model-reasoned connections that need verification._
