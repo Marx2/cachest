@@ -134,6 +134,17 @@ routes:
     fetch_interval: 60
     fetch_max_wait: 4
 
+  # --- Catalyst corporate bonds (D80, 2026-09-19) ---
+
+  - name: OPENST_CORP_BOND_PROFILE
+    path: /corp-bond/profile/{symbol}
+    url: "http://openst:8080/corp-bond/profile/{symbol}"
+    cache_ttl: 86400           # 24h — static bond metadata (obligacje.pl scrape)
+    stale_ttl: 2592000
+    fetch_interval: 60
+    fetch_max_wait: 4
+    fetch_timeout: 120         # obligacje.pl scrape can take a few seconds
+
   - name: OPENST_BOND_SEARCH
     path: /fixedincome/search/{query}
     url: "http://openst:8080/fixedincome/search/{query}"

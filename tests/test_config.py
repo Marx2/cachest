@@ -210,3 +210,13 @@ def test_real_config_has_bond_search_route():
     assert route.cache_ttl == 3600        # 1h — catalogue moves daily
     assert route.stale_ttl == 2592000
     assert route.fetch_interval == 2
+
+
+def test_real_config_has_corp_bond_profile_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/corp-bond/profile/{symbol}")
+    assert route.name == "OPENST_CORP_BOND_PROFILE"
+    assert route.url == "http://openst:8080/corp-bond/profile/{symbol}"
+    assert route.cache_ttl == 86400       # 24h — static bond metadata
+    assert route.stale_ttl == 2592000
+    assert route.fetch_interval == 60
