@@ -220,3 +220,13 @@ def test_real_config_has_corp_bond_profile_route():
     assert route.cache_ttl == 86400       # 24h — static bond metadata
     assert route.stale_ttl == 2592000
     assert route.fetch_interval == 60
+
+
+def test_real_config_has_corp_bond_catalogue_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/corp-bond/catalogue")
+    assert route.name == "OPENST_CORP_BOND_CATALOGUE"
+    assert route.url == "http://openst:8080/corp-bond/catalogue"
+    assert route.cache_ttl == 43200       # 12h — half the openst 24h TTL
+    assert route.stale_ttl == 2592000
+    assert route.fetch_interval == 60
