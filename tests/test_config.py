@@ -240,3 +240,32 @@ def test_real_config_has_corp_bond_catalogue_route():
     assert route.cache_ttl == 43200       # 12h — half the openst 24h TTL
     assert route.stale_ttl == 2592000
     assert route.fetch_interval == 60
+
+
+# ---------------------------------------------------------------------------
+# §49.9 dividend calendar — real config.yaml passthrough routes
+# ---------------------------------------------------------------------------
+
+
+def test_real_config_has_dividend_calendar_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/calendar/dividend")
+    assert route.name == "OPENST_CALENDAR_DIVIDEND"
+    assert route.url == \
+        "http://openst:8080/equity/calendar/dividend?start={start}&end={end}"
+    assert route.query_params == ["start", "end"]
+    assert not route.extract.selector          # passthrough: payment_date preserved
+    assert route.json_field == ""
+    assert route.cache_ttl == 3600             # 1h — calendar revisions
+    assert route.stale_ttl == 2592000
+
+
+def test_real_config_has_dividend_history_route():
+    cfg = load("config.yaml")
+    route = next(r for r in cfg.routes if r.path == "/dividends/{ticker}")
+    assert route.name == "OPENST_DIVIDENDS"
+    assert route.url == "http://openst:8080/dividend/history/{ticker}"
+    assert not route.extract.selector          # passthrough: payment_date preserved
+    assert route.json_field == ""
+    assert route.cache_ttl == 86400            # 24h — dividend history is static
+    assert route.stale_ttl == 2592000
