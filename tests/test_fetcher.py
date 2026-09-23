@@ -1,3 +1,4 @@
+import json
 import pytest
 import httpx
 import respx
@@ -41,6 +42,19 @@ async def test_fetch_returns_text_on_200():
     )
     result = await fetch("http://example.com/test", ExtractConfig())
     assert result == "42.5%"
+
+
+@pytest.mark.asyncio
+@respx.mock
+async def test_fetch_json_passthrough_keeps_payment_date():
+    payload = json.dumps(
+        [{"date": "2026-08-10", "amount": "0.2700", "payment_date": "2026-08-13"}]
+    )
+    respx.get("http://example.com/dividends/AAPL").mock(
+        return_value=httpx.Response(200, text=payload)
+    )
+    result = await fetch("http://example.com/dividends/AAPL", ExtractConfig())
+    assert result == payload
 
 
 @pytest.mark.asyncio
