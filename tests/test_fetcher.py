@@ -59,6 +59,39 @@ async def test_fetch_json_passthrough_keeps_payment_date():
 
 @pytest.mark.asyncio
 @respx.mock
+async def test_fetch_json_passthrough_keeps_dividendmax_and_biznesradar_fields():
+    """§52.5 — the 52 provider extras must survive the passthrough untouched:
+    dividendmax history rows (currency/dividend_type/declaration_date) and
+    biznesradar calendar rows (status)."""
+    payload = json.dumps(
+        [
+            {
+                "date": "2026-08-10",
+                "amount": "0.2700",
+                "payment_date": "2026-08-13",
+                "declaration_date": "2026-07-30",
+                "currency": "USD",
+                "dividend_type": "Quarterly",
+                "status": "Paid",
+            },
+            {
+                "ex_dividend_date": "2026-09-28",
+                "payment_date": "2026-12-30",
+                "amount": "0.22",
+                "symbol": "NTT",
+                "status": "uchwalona",
+            },
+        ]
+    )
+    respx.get("http://example.com/dividends/AAPL").mock(
+        return_value=httpx.Response(200, text=payload)
+    )
+    result = await fetch("http://example.com/dividends/AAPL", ExtractConfig())
+    assert result == payload
+
+
+@pytest.mark.asyncio
+@respx.mock
 async def test_fetch_raises_upstream_error_on_404():
     respx.get("http://example.com/test").mock(return_value=httpx.Response(404))
     with pytest.raises(UpstreamError) as exc_info:
