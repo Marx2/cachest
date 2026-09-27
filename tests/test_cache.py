@@ -3,7 +3,7 @@ import time
 import pytest
 from unittest.mock import AsyncMock, MagicMock
 
-from cache import SCAN_BATCH, CacheMiss, CacheStale, RedisCache
+from cache import SCAN_BATCH, TIMESTAMP_CHARS, CacheMiss, CacheStale, RedisCache
 
 
 @pytest.fixture
@@ -141,6 +141,65 @@ async def test_scan_all_with_values_batches_large_keyspaces(cache, redis_mock):
     result = await cache.scan_all_with_values()
     assert len(result) == len(keys)
     assert redis_mock.mget.call_count == 3
+
+
+async def test_read_heads_pipelines_getrange(cache, redis_mock):
+    pipe = MagicMock()
+    pipe.getrange = MagicMock()
+    pipe.execute = AsyncMock(return_value=["1700000000|", "1700000001|"])
+    redis_mock.pipeline = MagicMock(return_value=pipe)
+
+    assert await cache.read_heads(["a:1", "b:2"]) == {
+        "a:1": "1700000000|", "b:2": "1700000001|",
+    }
+    pipe.execute.assert_awaited_once_with(raise_on_error=False)
+    assert [c.args for c in pipe.getrange.call_args_list] == [
+        ("a:1", 0, TIMESTAMP_CHARS - 1), ("b:2", 0, TIMESTAMP_CHARS - 1),
+    ]
+
+
+async def test_read_heads_skips_wrong_type_keys(cache, redis_mock):
+    """Regression: cachest's "stats:" counters are hashes in this same database, and
+    GETRANGE on a hash raises WRONGTYPE. A dashboard must not 500 on its own keys."""
+    from redis.exceptions import ResponseError
+    pipe = MagicMock()
+    pipe.getrange = MagicMock()
+    pipe.execute = AsyncMock(return_value=[
+        "1700000000|",
+        ResponseError("WRONGTYPE Operation against a key holding the wrong kind of value"),
+        "",  # key deleted between SCAN and read
+    ])
+    redis_mock.pipeline = MagicMock(return_value=pipe)
+
+    result = await cache.read_heads(["a:1", "stats:/x", "gone:1"])
+    assert result == {"a:1": "1700000000|"}
+
+
+async def test_read_previews_strips_the_timestamp_prefix(cache, redis_mock):
+    pipe = MagicMock()
+    pipe.getrange = MagicMock()
+    pipe.execute = AsyncMock(return_value=["1700000000|0.0525"])
+    redis_mock.pipeline = MagicMock(return_value=pipe)
+
+    assert await cache.read_previews(["dy:AAPL"]) == {"dy:AAPL": "0.0525"}
+
+
+async def test_read_previews_truncates(cache, redis_mock):
+    pipe = MagicMock()
+    pipe.getrange = MagicMock()
+    pipe.execute = AsyncMock(return_value=["1700000000|" + "z" * 500])
+    redis_mock.pipeline = MagicMock(return_value=pipe)
+
+    assert (await cache.read_previews(["k"], length=80))["k"] == "z" * 80
+
+
+async def test_reads_batch_large_key_lists(cache, redis_mock):
+    pipe = MagicMock()
+    pipe.getrange = MagicMock()
+    pipe.execute = AsyncMock(side_effect=lambda *a, **k: [])
+    redis_mock.pipeline = MagicMock(return_value=pipe)
+    await cache.read_heads([f"k:{i}" for i in range(SCAN_BATCH + 1)])
+    assert pipe.execute.call_count == 2
 
 
 # --- deletion --------------------------------------------------------------

@@ -78,38 +78,36 @@ class RedisCache:
         """All keys matching a glob pattern, fully drained."""
         return [k async for k in self._client.scan_iter(pattern)]
 
-    async def scan_timestamps(self, batch: int = SCAN_BATCH) -> list[tuple[str, str]]:
-        """Return [(key, value_head)] for every key, reading only the first bytes.
+    async def read_heads(self, keys: list[str], batch: int = SCAN_BATCH) -> dict[str, str]:
+        """Return {key: value_head} for the given keys, reading only the first bytes.
 
-        Enough to attribute a key to a route and place it in an age histogram without
-        pulling the cached bodies — which is what made /stats OOM.
+        Enough to place a key in an age histogram without pulling the cached body,
+        which is what made /stats OOM. Keys of the wrong type are skipped rather than
+        raised: cachest's own ``stats:`` counters are hashes in this same database, and
+        a dashboard must not 500 because of its own bookkeeping.
         """
-        keys = await self.scan_keys("*")
-        heads: list[tuple[str, str]] = []
-        for start in range(0, len(keys), batch):
-            chunk = keys[start:start + batch]
-            pipe = self._client.pipeline(transaction=False)
-            for key in chunk:
-                pipe.getrange(key, 0, TIMESTAMP_CHARS - 1)
-            for key, head in zip(chunk, await pipe.execute()):
-                heads.append((key, head or ""))
-        return heads
+        return await self._read_ranges(keys, 0, TIMESTAMP_CHARS - 1, batch)
 
-    async def fetch_previews(
+    async def read_previews(
         self, keys: list[str], length: int = 80, batch: int = SCAN_BATCH
     ) -> dict[str, str]:
         """Return {key: body-preview} for the given keys, reading only a prefix."""
-        previews: dict[str, str] = {}
-        for start in range(0, len(keys), batch):
-            chunk = keys[start:start + batch]
+        raw = await self._read_ranges(keys, 0, TIMESTAMP_CHARS + length - 1, batch)
+        return {k: v.split("|", 1)[-1][:length] for k, v in raw.items()}
+
+    async def _read_ranges(
+        self, keys: list[str], start: int, end: int, batch: int
+    ) -> dict[str, str]:
+        out: dict[str, str] = {}
+        for i in range(0, len(keys), batch):
+            chunk = keys[i:i + batch]
             pipe = self._client.pipeline(transaction=False)
             for key in chunk:
-                # Skip the "<ts>|" prefix so the preview shows the body itself.
-                pipe.getrange(key, 0, TIMESTAMP_CHARS + length - 1)
-            for key, raw in zip(chunk, await pipe.execute()):
-                if raw:
-                    previews[key] = raw.split("|", 1)[-1][:length]
-        return previews
+                pipe.getrange(key, start, end)
+            for key, value in zip(chunk, await pipe.execute(raise_on_error=False)):
+                if isinstance(value, str) and value:
+                    out[key] = value
+        return out
 
     async def scan_all_with_values(self) -> list[tuple[str, str]]:
         """Return [(key, raw_value)] for every key in the database.
