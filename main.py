@@ -262,8 +262,10 @@ def create_app(config: Config) -> FastAPI:
         logger.info("cachest starting — %d route(s) registered", len(config.routes))
         for r in config.routes:
             logger.info(
-                "  %s -> %s (cache_ttl: %ss, stale_ttl: %ss, fetch_interval: %ss, fetch_max_wait: %ss, fetch_timeout: %ss)",
-                r.path, r.url, r.cache_ttl, r.stale_ttl, r.fetch_interval, r.fetch_max_wait, r.fetch_timeout,
+                "  %s -> %s (cache_ttl: %ss, stale_ttl: %ss, fetch_interval: %ss, "
+                "fetch_max_wait: %ss, queue_depth: %s, fetch_timeout: %ss)",
+                r.path, r.url, r.cache_ttl, r.stale_ttl, r.fetch_interval, r.fetch_max_wait,
+                r.queue_depth if r.queue_depth >= 0 else "unbounded", r.fetch_timeout,
             )
         await stats.load_from_redis(cache)
         stats.init(cache)

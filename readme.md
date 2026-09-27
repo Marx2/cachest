@@ -43,7 +43,7 @@ routes:
 | `extract.field` | `""` | Element to return from the matched row. |
 | `query_params` | `[]` | Required query parameters, appended to the cache key. |
 | `fetch_interval` | `2.0` | Min seconds between upstream fetches. |
-| `fetch_max_wait` | `4.0` | Max seconds a request queues before serving stale. |
+| `fetch_max_wait` | `4.0` | Total seconds a request may queue before serving stale — see [Rate Limiting](#rate-limiting). With the defaults this is depth 3. |
 | `fetch_timeout` | `15.0` | Per-request upstream timeout, in seconds. |
 
 ### Extraction
@@ -140,6 +140,30 @@ waits up to `fetch_max_wait`, then gets the cached value immediately however old
 `?forceRefresh=true` skips the cache read but is still rate limited and still subject to
 the daily quota.
 
+**`fetch_interval` and `fetch_max_wait` are a pair, and the pair is a concurrency cap.**
+`RateLimiter` claims its slot as `last = now + sleep`, so the Nth waiter sleeps
+`N × fetch_interval` — `fetch_max_wait` is a *total queueing budget*, not per-request
+patience, and the depth it admits is:
+
+```
+queue_depth = floor(fetch_max_wait / fetch_interval) + 1
+```
+
+Anything past that depth is rejected with an instant `503` and **no upstream call at
+all** (see the `[rate-limit] max_wait exceeded` warning). So a route's `queue_depth`
+must exceed the widest concurrent burst its callers produce, and because a rejected
+request never reaches the provider it is indistinguishable downstream from a provider
+outage. The historical `2 / 4` is depth **3**.
+
+| `fetch_interval` | `fetch_max_wait` | depth | use for |
+|---|---|---|---|
+| `0.2` | `120` | 600 | in-cluster `openst` routes a portfolio sweep fans out over (175+ symbols) |
+| `1` | `120` | 121 | openst routes whose own leg scrapes an external site (biznesradar NAV) |
+| `2` | `120` | 61 | external vendors, and openst routes that scrape obligacje.pl |
+| `60` / `300` | `4` | 1 | deliberately serialized singletons (`/corp-bond/catalogue`, `/news/company/…`) |
+
+`queue_depth` is logged per route at startup and pinned in `tests/test_config.py`.
+
 ## Response Headers
 
 | Header | Meaning |
@@ -156,7 +180,7 @@ the daily quota.
 | `404` | Upstream has no data for this key, or no such route. Not cached, not retried. |
 | `422` | A required query parameter is missing. |
 | `502` | Upstream responded but the body could not be parsed (selector drift, bad `json_field`), or the request failed outright. |
-| `503` | Upstream error, rate limit, or quota exceeded **and** no cached value exists. |
+| `503` | Upstream error, rate limit, or quota exceeded **and** no cached value exists. A rate-limited 503 means *no upstream call was made* — see [Rate Limiting](#rate-limiting). |
 
 `502` and `503` are deliberately different: `503` means "ask again later or take the
 stale value", `502` means "our extraction is broken and a human should look".

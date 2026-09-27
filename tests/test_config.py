@@ -9,7 +9,15 @@ covered by test_main.py::test_every_configured_route_registers_a_fastapi_route.
 import pytest
 from pathlib import Path
 
-from config import DEFAULT_STALE_TTL, QUOTA_TTL_SECONDS, Config, ConfigError, load
+from config import (
+    DEFAULT_STALE_TTL,
+    QUOTA_TTL_SECONDS,
+    UNBOUNDED_QUEUE,
+    Config,
+    ConfigError,
+    RouteConfig,
+    load,
+)
 from keys import key_pattern
 
 REAL_CONFIG = Path(__file__).resolve().parent.parent / "config.yaml"
@@ -258,6 +266,102 @@ def test_real_config_has_no_two_routes_sharing_a_key_space():
 def test_real_config_quota_ttl_outlives_a_utc_day():
     """The counter for "today" must not expire before the day it counts is over."""
     assert QUOTA_TTL_SECONDS > 86400
+
+
+# --- queue depth (plan §63.9) ---------------------------------------------
+#
+# fetch_max_wait is a TOTAL queueing budget, so fetch_interval/fetch_max_wait
+# silently set a concurrency cap. The historical 2/4 is depth 3, which starved
+# every symbol past the third in a portfolio sweep behind an instant 503 that
+# never reached the provider. These tests pin the arithmetic and the shipped
+# per-route depths so that cannot regress unnoticed.
+
+
+def test_queue_depth_is_floor_max_wait_over_interval_plus_one():
+    assert RouteConfig("/a/{t}", "http://x/{t}", 60, fetch_interval=2.0, fetch_max_wait=4.0).queue_depth == 3
+    assert RouteConfig("/a/{t}", "http://x/{t}", 60, fetch_interval=0.2, fetch_max_wait=120.0).queue_depth == 600
+    assert RouteConfig("/a/{t}", "http://x/{t}", 60, fetch_interval=1.0, fetch_max_wait=120.0).queue_depth == 121
+    # a remainder below one interval still buys exactly one more slot
+    assert RouteConfig("/a/{t}", "http://x/{t}", 60, fetch_interval=3.0, fetch_max_wait=7.0).queue_depth == 3
+
+
+def test_queue_depth_is_unbounded_without_pacing():
+    assert RouteConfig("/a/{t}", "http://x/{t}", 60, fetch_interval=0.0).queue_depth == UNBOUNDED_QUEUE
+
+
+#: Two depth bars, because the callers come in two sizes.
+#:
+#: `portfoliost-wallets`' snapshots-sync sweep asks for every held symbol of every
+#: portfolio at once — 175+ distinct symbols in PROD — but only on the price-bar
+#: routes. A page of the SPA fans out over one portfolio's positions plus the
+#: portfolio cards, so ~80 is the worst realistic case there.
+#:
+#: The two routes below are deliberately serialized and exempt from both: one has
+#: no path param at all (a singleton scraped once a day by the corpbondsync job)
+#: and the other is per-company news on a 5-minute cadence, where a second
+#: concurrent caller for the same key is a cache miss by definition.
+SWEEP_ROUTES = frozenset({
+    "/ohlcv/{ticker}",
+    "/ohlcv/fund/{ticker}",
+    "/fixedincome/ohlcv/{symbol}",
+    "/crypto/ohlcv/{pair}",
+})
+MIN_SWEEP_DEPTH = 128
+MIN_UI_DEPTH = 32
+NARROW_FANOUT = frozenset({"/corp-bond/catalogue", "/news/company/{ticker}"})
+
+
+def _too_shallow(cfg, only=None, exempt=frozenset(), floor=0):
+    return [
+        (r.name, r.path, r.queue_depth)
+        for r in cfg.routes
+        if (only is None or r.path in only)
+        and r.path not in exempt
+        and 0 <= r.queue_depth < floor
+    ]
+
+
+def test_real_config_queue_depth_absorbs_a_portfolio_sweep():
+    """The price-bar routes carry the 175+ symbol snapshots-sync burst."""
+    too_shallow = _too_shallow(load(REAL_CONFIG), only=SWEEP_ROUTES, floor=MIN_SWEEP_DEPTH)
+    assert not too_shallow, _depth_msg(too_shallow, MIN_SWEEP_DEPTH)
+
+
+def test_real_config_queue_depth_absorbs_a_ui_page():
+    """Every other symbol-keyed route carries one page of the SPA (~80 rows)."""
+    too_shallow = _too_shallow(load(REAL_CONFIG), exempt=NARROW_FANOUT, floor=MIN_UI_DEPTH)
+    assert not too_shallow, _depth_msg(too_shallow, MIN_UI_DEPTH)
+
+
+def _depth_msg(too_shallow, floor):
+    return (
+        "queue_depth = floor(fetch_max_wait / fetch_interval) + 1 is a concurrency cap; "
+        f"these routes admit fewer than {floor} concurrent upstream fetches and 503 "
+        "(with no upstream call at all) for every caller past that depth: "
+        f"{too_shallow}"
+    )
+
+
+def test_real_config_deliberately_serialized_routes_are_named():
+    """The NARROW_FANOUT exemption is a decision, not an oversight — pin both halves."""
+    cfg = load(REAL_CONFIG)
+    by_path = {r.path: r for r in cfg.routes}
+    for path in NARROW_FANOUT:
+        assert path in by_path, f"{path} no longer exists; re-check the fan-out exemption"
+        assert by_path[path].queue_depth < MIN_UI_DEPTH, (
+            f"{path} is exempted as a deliberate singleton but now has a sweep-sized depth "
+            "— drop it from NARROW_FANOUT so it is held to the UI bar"
+        )
+    for path in SWEEP_ROUTES:
+        assert path in by_path, f"{path} no longer exists; re-check SWEEP_ROUTES"
+
+
+def test_real_config_paces_external_scrapes_rather_than_flooding():
+    """openst legs that scrape an external site keep real spacing (plan §63.9.1)."""
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    for name in ("OPENST_OHLCV_FUNDS", "OPENST_BOND_PROFILE", "OPENST_CORP_BOND_PROFILE"):
+        assert by_name[name].fetch_interval >= 0.5, f"{name} proxies a scraper upstream"
 
 
 def test_redis_port_and_db_are_file_only(tmp_path, monkeypatch):
