@@ -142,23 +142,6 @@ def make_handler(route: RouteConfig, cache: RedisCache, limiter: RateLimiter, cl
     return handler
 
 
-def _age_buckets(pairs: list[tuple[str, str]]) -> list[int]:
-    """Count entries per day-age, oldest bucket = 29+ days."""
-    now = int(time.time())
-    buckets = [0] * BUCKETS
-    for _key, raw in pairs:
-        try:
-            ts_str, _ = raw.split("|", 1)
-            age_days = (now - int(ts_str)) // 86400
-        except (ValueError, IndexError):
-            continue
-        if 0 <= age_days < BUCKETS:
-            buckets[age_days] += 1
-        elif age_days >= BUCKETS:
-            buckets[-1] += 1
-    return buckets
-
-
 def _histogram_html(buckets: list[int]) -> list[dict[str, Any]]:
     """Bar heights + labels for the age histogram."""
     peak = max(buckets) or 1
@@ -174,24 +157,51 @@ def _histogram_html(buckets: list[int]) -> list[dict[str, Any]]:
 
 
 async def _render_stats(config: Config, cache: RedisCache) -> dict[str, Any]:
-    """Everything the stats page needs, in one keyspace pass.
+    """Everything the stats page needs.
 
-    A single SCAN feeds every card. Keys are attributed to a route by matching each
-    route's own compiled pattern, so sibling routes that share a leading path segment
-    ("/ohlcv/{ticker}" vs "/ohlcv/fund/{ticker}") each count only their own keys.
+    Two bounded passes instead of one unbounded read:
+
+    1. Read only the head of every value to attribute keys to routes and fill the age
+       histogram. The production keyspace is ~50 MB across ~1100 keys with a 1.1 MB
+       maximum value, so loading whole bodies here OOM-killed the pod.
+    2. Fetch an 80-character preview for just the rows that will be displayed.
+
+    Keys are attributed by matching each route's own compiled pattern, so sibling
+    routes that share a leading path segment ("/ohlcv/{ticker}" vs
+    "/ohlcv/fund/{ticker}") each count only their own keys.
     """
-    all_pairs = await cache.scan_all_with_values()
-
+    now = int(time.time())
     patterns = [(r, key_pattern(r.path, r.query_params)) for r in config.routes]
-    by_route: dict[int, list[tuple[str, str]]] = {i: [] for i in range(len(config.routes))}
+    buckets: list[list[int]] = [[0] * BUCKETS for _ in config.routes]
+    counts = [0] * len(config.routes)
     unowned = 0
-    for key, raw in all_pairs:
-        for i, (_route, pattern) in enumerate(patterns):
-            if pattern.match(key):
-                by_route[i].append((key, raw))
-                break
-        else:
+    # (ts, route_path, label, key) for every key, newest first once sorted.
+    rows: list[tuple[int, str, str, str]] = []
+
+    for key, head in await cache.scan_timestamps():
+        owner = next((i for i, (_, p) in enumerate(patterns) if p.match(key)), None)
+        if owner is None:
             unowned += 1
+            continue
+        counts[owner] += 1
+        route = patterns[owner][0]
+        try:
+            ts = int(head.split("|", 1)[0])
+        except (ValueError, IndexError):
+            continue
+        age_days = (now - ts) // 86400
+        if age_days >= 0:
+            buckets[owner][min(age_days, BUCKETS - 1)] += 1
+        rows.append((ts, route.path, key_label(route.path, key), key))
+
+    if unowned:
+        logger.info("stats: %d key(s) matched no route pattern", unowned)
+
+    rows.sort(key=lambda r: r[0], reverse=True)
+    if len(rows) > MAX_ENTRIES:
+        logger.info("stats: cache browser truncated from %d to %d entries", len(rows), MAX_ENTRIES)
+        rows = rows[:MAX_ENTRIES]
+    previews = await cache.fetch_previews([r[3] for r in rows])
 
     all_stats = stats.all_routes()
     family_sizes: dict[str, int] = {}
@@ -201,7 +211,6 @@ async def _render_stats(config: Config, cache: RedisCache) -> dict[str, Any]:
 
     cards = []
     for i, route in enumerate(config.routes):
-        pairs = by_route[i]
         s = all_stats.get(route.path) or stats.RouteStats()
         cards.append({
             "path": route.path,
@@ -213,33 +222,19 @@ async def _render_stats(config: Config, cache: RedisCache) -> dict[str, Any]:
             "misses": s.misses,
             "stale": s.stale,
             "errors": s.errors,
-            "total_keys": len(pairs),
-            "buckets": _histogram_html(_age_buckets(pairs)),
+            "total_keys": counts[i],
+            "buckets": _histogram_html(buckets[i]),
         })
 
-    # Newest first, one row per cache key, truncated so a large keyspace cannot
-    # produce an unbounded HTML payload.
-    rows: list[tuple[int, str, str, str, str]] = []
-    for i, route in enumerate(config.routes):
-        for key, raw in by_route[i]:
-            try:
-                ts_str, value = raw.split("|", 1)
-                ts = int(ts_str)
-            except (ValueError, IndexError):
-                continue
-            rows.append((ts, route.path, key_label(route.path, key), value[:80], key))
-    rows.sort(key=lambda r: r[0], reverse=True)
-
-    if len(rows) > MAX_ENTRIES:
-        logger.info("stats: cache browser truncated from %d to %d entries", len(rows), MAX_ENTRIES)
-        rows = rows[:MAX_ENTRIES]
-
-    if unowned:
-        logger.info("stats: %d key(s) matched no route pattern", unowned)
-
     entries = [
-        {"key": key, "ticker": label, "route": route_path, "ts": ts, "value": value}
-        for ts, route_path, label, value, key in rows
+        {
+            "key": key,
+            "ticker": label,
+            "route": route_path,
+            "ts": ts,
+            "value": previews.get(key, ""),
+        }
+        for ts, route_path, label, key in rows
     ]
     return {"cards": cards, "entries": entries}
 

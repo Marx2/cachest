@@ -8,6 +8,11 @@ from keys import safe_key
 # chunked. 1000 values is well inside a normal reply-buffer budget.
 SCAN_BATCH = 1000
 
+# Stored values are "<unix-ts>|<body>". The age a dashboard needs is in the first 10
+# bytes, so heads are read instead of whole values: the production keyspace is ~50 MB
+# across ~1100 keys with a 1.1 MB maximum, and reading it whole OOM-killed the pod.
+TIMESTAMP_CHARS = 15
+
 
 class CacheMiss(Exception):
     pass
@@ -73,23 +78,61 @@ class RedisCache:
         """All keys matching a glob pattern, fully drained."""
         return [k async for k in self._client.scan_iter(pattern)]
 
+    async def scan_timestamps(self, batch: int = SCAN_BATCH) -> list[tuple[str, str]]:
+        """Return [(key, value_head)] for every key, reading only the first bytes.
+
+        Enough to attribute a key to a route and place it in an age histogram without
+        pulling the cached bodies — which is what made /stats OOM.
+        """
+        keys = await self.scan_keys("*")
+        heads: list[tuple[str, str]] = []
+        for start in range(0, len(keys), batch):
+            chunk = keys[start:start + batch]
+            pipe = self._client.pipeline(transaction=False)
+            for key in chunk:
+                pipe.getrange(key, 0, TIMESTAMP_CHARS - 1)
+            for key, head in zip(chunk, await pipe.execute()):
+                heads.append((key, head or ""))
+        return heads
+
+    async def fetch_previews(
+        self, keys: list[str], length: int = 80, batch: int = SCAN_BATCH
+    ) -> dict[str, str]:
+        """Return {key: body-preview} for the given keys, reading only a prefix."""
+        previews: dict[str, str] = {}
+        for start in range(0, len(keys), batch):
+            chunk = keys[start:start + batch]
+            pipe = self._client.pipeline(transaction=False)
+            for key in chunk:
+                # Skip the "<ts>|" prefix so the preview shows the body itself.
+                pipe.getrange(key, 0, TIMESTAMP_CHARS + length - 1)
+            for key, raw in zip(chunk, await pipe.execute()):
+                if raw:
+                    previews[key] = raw.split("|", 1)[-1][:length]
+        return previews
+
     async def scan_all_with_values(self) -> list[tuple[str, str]]:
         """Return [(key, raw_value)] for every key in the database.
 
-        One SCAN pass feeds the whole stats page, which then attributes each key to a
-        route. Values are read in chunks so a large keyspace cannot produce a single
-        oversized MGET.
+        Convenience for tests and small keyspaces. Prefer iter_all_with_values() for
+        anything user-facing: this materialises the whole keyspace, and a single cached
+        OHLCV response can be hundreds of KB.
+        """
+        return [pair async for pair in self.iter_all_with_values()]
+
+    async def iter_all_with_values(self, batch: int = SCAN_BATCH):
+        """Yield (key, raw_value) across the whole database in chunks.
+
+        The caller sees at most `batch` full values at a time, so a page that walks the
+        keyspace (the stats dashboard) is bounded in memory regardless of keyspace
+        size. Reading it in one list is what OOM-killed the pod against a 128Mi limit.
         """
         keys = await self.scan_keys("*")
-        if not keys:
-            return []
-        pairs: list[tuple[str, str]] = []
-        for start in range(0, len(keys), SCAN_BATCH):
-            chunk = keys[start:start + SCAN_BATCH]
+        for start in range(0, len(keys), batch):
+            chunk = keys[start:start + batch]
             for key, value in zip(chunk, await self._client.mget(*chunk)):
                 if value is not None:
-                    pairs.append((key, value))
-        return pairs
+                    yield key, value
 
     async def delete_pattern(self, pattern: str) -> int:
         """Delete every key matching a glob pattern. Returns the number deleted."""
