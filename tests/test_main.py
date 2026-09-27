@@ -535,6 +535,23 @@ def test_meta_reports_service_and_version(monkeypatch, client):
     }
 
 
+def test_stats_page_references_assets_relatively(mock_cache, client):
+    """Regression: behind the TLS ingress, url_for() emitted absolute http:// URLs
+    because uvicorn does not trust X-Forwarded-Proto. The browser then blocked the CSS
+    and JS as mixed content — the page rendered unstyled and the cache browser never
+    ran. TestClient hides this because its base URL is already http://testserver, so
+    the reference must be asserted rather than assumed.
+    """
+    body = client().get("/stats").text
+    assert 'href="/static/stats.css"' in body
+    assert 'src="/static/stats.js"' in body
+    # No absolute URL may appear in an attribute — that is what the browser blocks.
+    # (A bare "http://" in prose is fine, hence the attribute-scoped check.)
+    assert '="http://' not in body
+    assert "='http://" not in body
+    assert '="https://testserver/static' not in body
+
+
 @pytest.mark.parametrize("path", ["/static/stats.css", "/static/stats.js"])
 def test_static_assets_are_served(client, path):
     """The stats page's CSS/JS must resolve, or the page renders unstyled."""

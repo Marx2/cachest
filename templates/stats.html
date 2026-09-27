@@ -8,7 +8,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', path='stats.css') }}">
+  <!-- Root-relative, not url_for(): behind the TLS ingress uvicorn does not trust
+       X-Forwarded-Proto, so url_for() emits http:// and the browser blocks the asset
+       as mixed content, leaving the page unstyled with no working cache browser. -->
+  <link rel="stylesheet" href="/static/stats.css">
 </head>
 <body>
   <div class="header-row">
@@ -71,6 +74,6 @@
   </div>
 
   <script id="cache-entries" type="application/json">{{ entries|tojson }}</script>
-  <script src="{{ url_for('static', path='stats.js') }}"></script>
+  <script src="/static/stats.js"></script>
 </body>
 </html>
