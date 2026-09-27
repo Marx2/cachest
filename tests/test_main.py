@@ -41,17 +41,22 @@ def mock_cache():
     cache.hincrby_fields = AsyncMock()
 
     # The stats page reads value heads for counts/histogram, previews for shown rows.
-    cache._test_heads = []
+    cache._test_keys = []
+    cache._test_heads = {}
     cache._test_previews = {}
 
-    async def _heads():
-        return list(cache._test_heads)
+    async def _scan_keys(pattern="*"):
+        return list(cache._test_keys)
 
-    async def _previews(keys, length=80, batch=1000):
+    async def _heads(keys):
+        return {k: cache._test_heads[k] for k in keys if k in cache._test_heads}
+
+    async def _previews(keys, length=80):
         return {k: cache._test_previews.get(k, "") for k in keys}
 
-    cache.scan_timestamps = _heads
-    cache.fetch_previews = _previews
+    cache.scan_keys = _scan_keys
+    cache.read_heads = _heads
+    cache.read_previews = _previews
     return cache
 
 
@@ -306,7 +311,8 @@ def test_stats_page_renders(client):
 
 
 def test_stats_page_lists_entries(mock_cache, client):
-    mock_cache._test_heads = [("test:AAPL", "1700000000|")]
+    mock_cache._test_keys = ["test:AAPL"]
+    mock_cache._test_heads = {"test:AAPL": "1700000000|"}
     mock_cache._test_previews = {"test:AAPL": "0.05"}
     resp = client().get("/stats")
     assert "AAPL" in resp.text
@@ -316,7 +322,8 @@ def test_stats_page_lists_entries(mock_cache, client):
 def test_stats_page_embeds_json_not_javascript(mock_cache, client):
     """Values are embedded as JSON in a data block, so "</script>" inside a cached
     upstream body cannot break out into executable script."""
-    mock_cache._test_heads = [("test:AAPL", "1700000000|")]
+    mock_cache._test_keys = ["test:AAPL"]
+    mock_cache._test_heads = {"test:AAPL": "1700000000|"}
     mock_cache._test_previews = {"test:AAPL": "</script><script>alert(1)</script>"}
     resp = client().get("/stats")
     assert "<script>alert(1)</script>" not in resp.text
@@ -392,10 +399,11 @@ def _sibling_config() -> Config:
 
 
 def test_sibling_routes_count_only_their_own_keys(mock_cache, client):
-    mock_cache._test_heads = [
-        ("ohlcv:AAPL:2025-01-01:2026-01-01", "1700000000|"),
-        ("ohlcv:fund:VWCE:2025-01-01:2026-01-01", "1700000000|"),
+    mock_cache._test_keys = [
+        "ohlcv:AAPL:2025-01-01:2026-01-01",
+        "ohlcv:fund:VWCE:2025-01-01:2026-01-01",
     ]
+    mock_cache._test_heads = {k: "1700000000|" for k in mock_cache._test_keys}
     mock_cache._test_previews = {
         "ohlcv:AAPL:2025-01-01:2026-01-01": "a",
         "ohlcv:fund:VWCE:2025-01-01:2026-01-01": "b",
@@ -408,7 +416,8 @@ def test_sibling_routes_count_only_their_own_keys(mock_cache, client):
 
 def test_entry_label_is_the_path_param_not_a_literal_segment(mock_cache, client):
     """"/ohlcv/fund/{ticker}" labels VWCE, not "fund"."""
-    mock_cache._test_heads = [("ohlcv:fund:VWCE:2025-01-01:2026-01-01", "1700000000|")]
+    mock_cache._test_keys = ["ohlcv:fund:VWCE:2025-01-01:2026-01-01"]
+    mock_cache._test_heads = {"ohlcv:fund:VWCE:2025-01-01:2026-01-01": "1700000000|"}
     mock_cache._test_previews = {"ohlcv:fund:VWCE:2025-01-01:2026-01-01": "x"}
     resp = client(_sibling_config()).get("/stats")
     assert "VWCE" in resp.text
@@ -416,10 +425,38 @@ def test_entry_label_is_the_path_param_not_a_literal_segment(mock_cache, client)
 
 def test_unowned_keys_are_logged_not_attributed(mock_cache, client, caplog):
     """A key matching no route must be visible, not silently folded into a card."""
-    mock_cache._test_heads = [("orphan:key:1", "1700000000|")]
+    mock_cache._test_keys = ["orphan:key:1"]
+    mock_cache._test_heads = {"orphan:key:1": "1700000000|"}
     with caplog.at_level("INFO", logger="cachest"):
         client().get("/stats")
     assert any("matched no route" in r.message for r in caplog.records)
+
+
+def test_stats_page_ignores_cachests_own_bookkeeping_keys(mock_cache, client):
+    """Regression: cachest stores its counters and quota in the SAME Redis database
+    ("stats:/ohlcv/{ticker}" is a hash, "limit:FMP:<date>" a counter). Walking the whole
+    keyspace and reading every value made GET /stats fail with WRONGTYPE and 500.
+
+    Bookkeeping keys match no route pattern, so they are never even read.
+    """
+    mock_cache._test_keys = ["test:AAPL", "stats:/test/{id}", "limit:FMP:2026-05-13"]
+    mock_cache._test_heads = {"test:AAPL": "1700000000|"}
+    mock_cache._test_previews = {"test:AAPL": "0.05"}
+
+    read = []
+    real_read_heads = mock_cache.read_heads
+
+    async def _tracking_read_heads(keys):
+        read.extend(keys)
+        return await real_read_heads(keys)
+
+    mock_cache.read_heads = _tracking_read_heads
+
+    resp = client().get("/stats")
+    assert resp.status_code == 200
+    assert "0.05" in resp.text
+    # Only the real cache key was read; the hashes/counters were never touched.
+    assert read == ["test:AAPL"]
 
 
 def test_stats_page_reads_only_value_heads(mock_cache, client):
@@ -432,18 +469,16 @@ def test_stats_page_reads_only_value_heads(mock_cache, client):
     """
     import tracemalloc
 
-    n_keys = 60
+    keys = [f"ohlcv:SYM{i}:2026-01-01:2026-02-01" for i in range(60)]
+    mock_cache._test_keys = keys
+    mock_cache._test_heads = {k: "1700000000|" for k in keys}
 
-    async def _heads():
-        return [(f"ohlcv:SYM{i}:2026-01-01:2026-02-01", "1700000000|") for i in range(n_keys)]
-
-    async def _previews(keys, length=80, batch=1000):
+    async def _previews(ks, length=80):
         # 1.1 MB is the largest value measured in prod; built here, inside the traced
         # window, so materialising all of them at once would show up in the peak.
-        return {k: ("x" * 1_100_000)[:length] for k in keys}
+        return {k: ("x" * 1_100_000)[:length] for k in ks}
 
-    mock_cache.scan_timestamps = _heads
-    mock_cache.fetch_previews = _previews
+    mock_cache.read_previews = _previews
 
     tracemalloc.start()
     resp = client().get("/stats")
@@ -459,14 +494,13 @@ def test_stats_page_reads_only_value_heads(mock_cache, client):
 def test_stats_page_previews_are_truncated(mock_cache, client):
     """A cached value is an upstream body and can be arbitrarily large; only a short
     preview belongs in the page."""
-    async def _heads():
-        return [("test:AAPL", "1700000000|")]
+    mock_cache._test_keys = ["test:AAPL"]
+    mock_cache._test_heads = {"test:AAPL": "1700000000|"}
 
-    async def _previews(keys, length=80, batch=1000):
-        return {k: ("y" * 50_000)[:length] for k in keys}
+    async def _previews(ks, length=80):
+        return {k: ("y" * 50_000)[:length] for k in ks}
 
-    mock_cache.scan_timestamps = _heads
-    mock_cache.fetch_previews = _previews
+    mock_cache.read_previews = _previews
 
     resp = client().get("/stats")
     assert "y" * 50_000 not in resp.text
@@ -476,15 +510,10 @@ def test_stats_page_previews_are_truncated(mock_cache, client):
 def test_stats_page_caps_the_number_of_entries(mock_cache, client):
     from main import MAX_ENTRIES
     n = MAX_ENTRIES + 50
-
-    async def _heads():
-        return [(f"test:SYM{i}", f"{1700000000 + i}|") for i in range(n)]
-
-    async def _previews(keys, length=80, batch=1000):
-        return {k: "v" for k in keys}
-
-    mock_cache.scan_timestamps = _heads
-    mock_cache.fetch_previews = _previews
+    keys = [f"test:SYM{i}" for i in range(n)]
+    mock_cache._test_keys = keys
+    mock_cache._test_heads = {k: f"{1700000000 + i}|" for i, k in enumerate(keys)}
+    mock_cache._test_previews = {k: "v" for k in keys}
 
     resp = client().get("/stats")
     assert resp.text.count('"ticker"') <= MAX_ENTRIES

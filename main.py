@@ -161,13 +161,14 @@ async def _render_stats(config: Config, cache: RedisCache) -> dict[str, Any]:
 
     Two bounded passes instead of one unbounded read:
 
-    1. Read only the head of every value to attribute keys to routes and fill the age
-       histogram. The production keyspace is ~50 MB across ~1100 keys with a 1.1 MB
-       maximum value, so loading whole bodies here OOM-killed the pod.
+    1. Attribute keys to routes from the key alone, then read only the "<ts>|" head of
+       the ones that matched. The production keyspace is ~50 MB over ~1100 keys with a
+       1.1 MB maximum, so loading whole bodies here OOM-killed the pod. Keys are matched
+       before being read, so cachest's own ``stats:`` / ``limit:`` bookkeeping — which
+       shares this database — is never touched.
     2. Fetch an 80-character preview for just the rows that will be displayed.
 
-    Keys are attributed by matching each route's own compiled pattern, so sibling
-    routes that share a leading path segment ("/ohlcv/{ticker}" vs
+    Sibling routes that share a leading path segment ("/ohlcv/{ticker}" vs
     "/ohlcv/fund/{ticker}") each count only their own keys.
     """
     now = int(time.time())
@@ -175,33 +176,37 @@ async def _render_stats(config: Config, cache: RedisCache) -> dict[str, Any]:
     buckets: list[list[int]] = [[0] * BUCKETS for _ in config.routes]
     counts = [0] * len(config.routes)
     unowned = 0
-    # (ts, route_path, label, key) for every key, newest first once sorted.
-    rows: list[tuple[int, str, str, str]] = []
-
-    for key, head in await cache.scan_timestamps():
+    # key -> owning route index, for every key that belongs to a configured route.
+    owners: dict[str, int] = {}
+    for key in await cache.scan_keys("*"):
         owner = next((i for i, (_, p) in enumerate(patterns) if p.match(key)), None)
         if owner is None:
             unowned += 1
-            continue
-        counts[owner] += 1
-        route = patterns[owner][0]
+        else:
+            owners[key] = owner
+
+    if unowned:
+        logger.info("stats: %d key(s) matched no route pattern", unowned)
+
+    # (ts, route_path, label, key) for every key, newest first once sorted.
+    rows: list[tuple[int, str, str, str]] = []
+    for key, head in (await cache.read_heads(list(owners))).items():
+        route = patterns[owners[key]][0]
+        counts[owners[key]] += 1
         try:
             ts = int(head.split("|", 1)[0])
         except (ValueError, IndexError):
             continue
         age_days = (now - ts) // 86400
         if age_days >= 0:
-            buckets[owner][min(age_days, BUCKETS - 1)] += 1
+            buckets[owners[key]][min(age_days, BUCKETS - 1)] += 1
         rows.append((ts, route.path, key_label(route.path, key), key))
-
-    if unowned:
-        logger.info("stats: %d key(s) matched no route pattern", unowned)
 
     rows.sort(key=lambda r: r[0], reverse=True)
     if len(rows) > MAX_ENTRIES:
         logger.info("stats: cache browser truncated from %d to %d entries", len(rows), MAX_ENTRIES)
         rows = rows[:MAX_ENTRIES]
-    previews = await cache.fetch_previews([r[3] for r in rows])
+    previews = await cache.read_previews([r[3] for r in rows])
 
     all_stats = stats.all_routes()
     family_sizes: dict[str, int] = {}
