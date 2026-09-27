@@ -9,9 +9,11 @@ FROM python:3.12-slim AS test
 WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY *.py config.yaml favicon.svg ./
+COPY templates/ ./templates/
+COPY static/ ./static/
 COPY pytest.ini ./
 COPY tests/ ./tests/
-CMD ["python", "-m", "pytest", "tests/", "-v"]
+CMD ["python", "-m", "pytest", "tests/", "-q"]
 
 # Stage 3: runtime (default)
 FROM python:3.12-slim AS runtime
@@ -21,5 +23,7 @@ ARG APP_VERSION=""
 ENV APP_VERSION=${APP_VERSION}
 COPY --from=builder /install /usr/local
 COPY *.py config.yaml favicon.svg ./
+COPY templates/ ./templates/
+COPY static/ ./static/
 EXPOSE 8080
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]

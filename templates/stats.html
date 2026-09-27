@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="refresh" content="30">
+  <title>cachest / stats</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', path='stats.css') }}">
+</head>
+<body>
+  <div class="header-row">
+    <div class="header-title">
+      <h1>cachest</h1>
+      <span class="header-subtitle">stats &amp; cache browser</span>
+    </div>
+    <button class="btn btn-secondary" id="reset-stats">Reset statistics</button>
+  </div>
+
+  <div class="grid" id="route-cards">
+    {% for card in cards %}
+    <div class="card">
+      <div class="card-header">
+        <span class="route-path">{{ card.path }}</span>
+        <span class="upstream">{{ card.upstream }}</span>
+      </div>
+      <div class="pills">
+        <span class="pill pill-total">Total {{ card.total }}</span>
+        <span class="pill pill-hit">HIT {{ card.hits }}</span>
+        <span class="pill pill-miss">MISS {{ card.misses }}</span>
+        <span class="pill pill-stale">STALE {{ card.stale }}</span>
+        <span class="pill pill-error">ERROR {{ card.errors }}</span>
+      </div>
+      <div class="redis-keys">Redis keys: {{ card.total_keys }}</div>
+      <div class="chart">
+        {% for bucket in card.buckets %}
+        <div class="bar-wrap">
+          <div class="bar" style="height:{{ bucket.pct }}%" title="{{ bucket.label }}: {{ bucket.count }} keys"></div>
+          <div class="bar-label">{{ bucket.short }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="card-actions">
+        <button class="btn btn-danger" data-reset-prefix="{{ card.prefix }}"
+                data-reset-label="Reset {{ card.prefix }}:{{ card.family_size }} route{{ '' if card.family_size == 1 else 's' }}">
+          Reset {{ card.prefix }}:{{ card.family_size }} route{{ '' if card.family_size == 1 else 's' }}
+        </button>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  <div class="section-header">
+    <h2>Cache Browser <span class="muted" id="entry-count">({{ entries|length }} entries)</span></h2>
+  </div>
+  <div class="cache-controls">
+    <input id="cache-filter" type="text" placeholder="Filter by ticker or route…" autocomplete="off" spellcheck="false">
+    <button id="invalidate-btn" class="btn btn-danger" disabled>Invalidate</button>
+  </div>
+  <div class="sort-group">
+    <button class="btn btn-secondary active" id="sort-desc">Newest first</button>
+    <button class="btn btn-secondary" id="sort-asc">Oldest first</button>
+  </div>
+  <div class="table-wrap">
+    <table class="cache-table">
+      <thead><tr><th>Ticker</th><th>Route</th><th>Cached At</th><th>Value</th></tr></thead>
+      <tbody id="cache-tbody"></tbody>
+    </table>
+  </div>
+
+  <script id="cache-entries" type="application/json">{{ entries|tojson }}</script>
+  <script src="{{ url_for('static', path='stats.js') }}"></script>
+</body>
+</html>
