@@ -8,6 +8,22 @@ on:
 
 jobs:
 
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      # Runs the test image directly rather than via `docker compose --profile test`:
+      # the compose test service also starts openst, which builds from ../openst and
+      # is not present in this repo's checkout. Every test mocks Redis and the
+      # upstream, so no services are needed.
+      - name: Build test image
+        run: docker build --target test -t cachest-test .
+
+      - name: Run test suite
+        run: docker run --rm cachest-test
+
   release:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest

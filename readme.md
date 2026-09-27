@@ -1,183 +1,229 @@
 # cachest — HTTP Caching Proxy
 
-Config-driven HTTP caching proxy. Routes, remote URLs, HTML extraction rules,
-and TTLs live entirely in `config.yaml`. Fetches upstream on cache miss, stores
-in Redis, returns cached value on subsequent requests.
+Config-driven HTTP caching proxy. Routes, upstream URLs, extraction rules, and TTLs live
+entirely in `config.yaml`. On a cache miss cachest fetches the upstream and stores the
+result in Redis; subsequent requests are served from Redis. When an upstream is slow,
+throttled, or down, the last known value is served stale rather than failing.
 
 ## Quick Start
 
-```
+```sh
 docker compose up --build
 ```
 
-Builds app image, starts Redis, registers routes. App listens on `:8080`.
+Starts Redis and the app (`:8080`), plus the `openst` dependency that most routes proxy.
+`/` redirects to `/stats`.
 
-## config.yaml Structure
+## Configuration
+
+Everything is declared in `config.yaml`. A minimal route:
 
 ```yaml
-redis:
-  host: redis        # Docker service name; use "localhost" for local dev
-  port: 6379
-  password: ""
-  db: 0
-
 routes:
-  - name: DIVIDENDHISTORY           # used for env var API key lookup and quota keys
-    path: /dyhistory/{ticker}
-    url: "https://dividendhistory.org/payout/{ticker}/"
-    extract:
-      selector: "dl.metrics-list .metric-row"   # CSS selector for rows
-      label: "Yield"                             # <dt> text to match
-      field: "dd"                                # sibling element to return
-    cache_ttl: 86400       # seconds (24h) — freshness window
-    stale_ttl: 2592000     # seconds (30 days) — how long key survives for stale fallback
-    fetch_interval: 2      # min seconds between remote fetches (default: 2)
-    fetch_max_wait: 4      # max seconds to queue before falling back to stale (default: 4)
-
-  - name: ALPHAVANTAGE
-    path: /dy/{ticker}
-    url: "https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker}&apikey={api_key}&datatype=csv"
-    cache_ttl: 86400
-    stale_ttl: 2592000
-    fetch_interval: 2
-    fetch_max_wait: 4
-
-  - name: FMP
-    path: /dy2/{ticker}
-    url: "https://financialmodelingprep.com/api/v3/profile/{ticker}?apikey={api_key}"
-    daily_limit: 250       # max upstream fetches per calendar day; 0 = unlimited (default: 0)
-    cache_ttl: 86400
-    stale_ttl: 2592000
-    fetch_interval: 2
-    fetch_max_wait: 4
-
-  - name: PRICE
-    path: /price/{ticker}
-    url: "https://someapi.com/price/{ticker}"
-    cache_ttl: 300
-    stale_ttl: 2592000
-    fetch_interval: 2
-    fetch_max_wait: 4
+  - name: VENDOR                 # used for the API-key env var and the quota key
+    path: /price/{ticker}        # the public path; {ticker} is a path param
+    url: "https://api.vendor.com/price/{ticker}"
+    cache_ttl: 300               # seconds before a value goes stale
+    stale_ttl: 2592000           # seconds the key survives for stale fallback
+    fetch_interval: 2            # min seconds between upstream fetches (default 2)
+    fetch_max_wait: 4            # max queue wait before serving stale (default 4)
 ```
 
-Path params use `{name}` syntax and are substituted into the URL template.
-`{api_key}` in a URL template is a special placeholder — resolved from env, not a path param.
-Multiple path params supported: `/foo/{a}/{b}` → url template with `{a}` and `{b}`.
+| Key | Default | Meaning |
+|-----|---------|---------|
+| `path` | required | Public path. `{name}` placeholders become path params. |
+| `url` | required | Upstream URL template. |
+| `cache_ttl` | required | Seconds a value counts as fresh. |
+| `stale_ttl` | `2592000` (30d) | How long the key survives in Redis. Must be ≥ `cache_ttl`. |
+| `name` | `""` | Identifies the vendor. Required for `api_key` and `daily_limit`. |
+| `daily_limit` | `0` (unlimited) | Max upstream fetches per UTC day. |
+| `json_field` | `""` | Pull one field out of a JSON response. |
+| `extract.selector` | `""` | CSS selector for HTML extraction. |
+| `extract.label` | `""` | `<dt>` text to match inside the selected row. |
+| `extract.field` | `""` | Element to return from the matched row. |
+| `query_params` | `[]` | Required query parameters, appended to the cache key. |
+| `fetch_interval` | `2.0` | Min seconds between upstream fetches. |
+| `fetch_max_wait` | `4.0` | Max seconds a request queues before serving stale. |
+| `fetch_timeout` | `15.0` | Per-request upstream timeout, in seconds. |
+
+### Extraction
+
+`fetcher.py` applies exactly one strategy, in this order:
+
+1. **`json_field`** — parse the response as JSON and return `str(data[json_field])`.
+2. **`extract.selector`** — find rows matching the selector, match `extract.label`
+   against the row's `<dt>`, return the text of `extract.field`.
+3. **Neither** — return the response body, stripped. This is the passthrough used by
+   29 of the 31 shipped routes, so provider-specific fields survive untouched.
+
+A failure in (1) or (2) returns `502` and is **never** answered with stale data — a
+stale value would be indistinguishable from a correct one. Only upstream errors and
+transport failures fall back to stale.
+
+### Query parameters
+
+```yaml
+  - name: OPENST_OHLCV
+    path: /ohlcv/{ticker}
+    url: "http://openst:8080/price/ohlcv/{ticker}?start={start}&end={end}"
+    query_params: [start, end]
+    cache_ttl: 21600
+    fetch_timeout: 120           # a multi-page scrape can take ~20s
+```
+
+Every name in `query_params` becomes part of the cache key, so
+`?end=2026-01-01` and `?end=2026-02-01` are cached separately. A request missing one of
+them gets `422` and is never sent upstream.
+
+Path params and query values are percent-encoded before they reach the upstream URL, so
+a value can never inject a query string or traverse a path.
+
+### Validation
+
+`config.load()` rejects a config that would misbehave, naming the offending route:
+duplicate `path` (colliding cache keys), a `{placeholder}` in `url` that is neither a
+path param nor a declared `query_param` nor `{api_key}`, `stale_ttl` shorter than
+`cache_ttl`, `daily_limit` without a `name`, negative TTLs, and `json_field` set
+together with `extract.selector`.
+
+### Cache keys
+
+A key is the path template with `{}` substituted, `/` turned into `:`, and one segment
+appended per query param:
+
+| Route | Request | Key |
+|-------|---------|-----|
+| `/dy/{ticker}` | `/dy/AAPL` | `dy:AAPL` |
+| `/ohlcv/{ticker}` | `?start=a&end=b` | `ohlcv:AAPL:a:b` |
+| `/ohlcv/fund/{ticker}` | `?start=a&end=b` | `ohlcv:fund:AAPL:a:b` |
+| `/calendar/earnings` | `?start=a&end=b` | `calendar:earnings:a:b` |
+
+Sibling routes never share a key, which is what lets `/stats` attribute every key to
+exactly one route.
 
 ## API Keys
 
-Routes with `{api_key}` in their URL template get the key injected at startup from env vars.
-Convention: `name: ALPHAVANTAGE` → env var `API_ALPHAVANTAGE`.
+Routes with `{api_key}` in their URL get it injected at load time from the environment.
+Convention: `name: ALPHAVANTAGE` → `API_ALPHAVANTAGE`.
 
-Create a `.env` file in the project root (already in `.gitignore`):
+Create a `.env` in the project root (already in `.gitignore`):
 
 ```
-API_ALPHAVANTAGE=your_alphavantage_key_here
-API_FMP=your_fmp_key_here
+API_ALPHAVANTAGE=your_alphavantage_key
+API_FMP=your_fmp_key
 ```
 
-The app loads `.env` automatically via `python-dotenv`. If the file is absent, routes without
-a key still work — the `{api_key}` placeholder is replaced with an empty string.
-
-Docker passes the file via `env_file` in `docker-compose.yml` (`required: false` so the
-container starts even without a `.env`).
+If `.env` is absent, those routes still start and `{api_key}` resolves to an empty
+string. The key never appears in a log line, on the `/stats` page, or in a cache key.
+Docker passes the file via `env_file` in `docker-compose.yml`.
 
 ## Daily Quota
 
-Routes can set `daily_limit: N` to cap upstream fetches per UTC calendar day.
+`daily_limit: N` caps upstream fetches per UTC calendar day. On exceeding it, cachest
+serves stale if available (`X-Cache: STALE`, `X-Cache-Stale-Reason: quota-exceeded`),
+else `503`.
 
-When the counter exceeds the limit:
-1. Stale cache is returned if available (`X-Cache: STALE`, `X-Cache-Stale-Reason: quota-exceeded`)
-2. If no stale value, returns HTTP 503
-
-Counter key in Redis: `limit:{NAME}:{YYYY-MM-DD}` (e.g. `limit:FMP:2026-05-13`). TTL = 90 000 s (~25 h).
-Counter increments only on actual upstream calls — cache hits don't count.
-`daily_limit: 0` (default) = unlimited.
-
-Inspect or override via redis-cli:
-```sh
-docker compose exec redis redis-cli GET "limit:FMP:2026-05-13"
-docker compose exec redis redis-cli SET "limit:FMP:2026-05-13" 251
-```
-
-## Usage
+Counter key: `limit:{NAME}:{YYYY-MM-DD}`, TTL 90 000 s (~25 h) so it outlives the day it
+counts. The TTL is set only when the counter is created, so traffic never extends the
+life of a dead day's counter. Only requests that reach the upstream consume quota —
+cache hits do not.
 
 ```sh
-# Dividend history (dividendhistory.org)
-curl -D - http://localhost:8080/dyhistory/AAPL
-
-# Alphavantage overview (requires API_ALPHAVANTAGE in .env)
-curl -D - http://localhost:8080/dy/AAPL
-
-# FMP profile (requires API_FMP in .env; subject to daily_limit: 250)
-curl -D - http://localhost:8080/dy2/AAPL
-
-# Force fresh fetch, bypass cache
-curl -D - "http://localhost:8080/dyhistory/AAPL?forceRefresh=true"
-
-# Price
-curl http://localhost:8080/price/VZ
+docker compose exec redis redis-cli GET "limit:FMP:$(date -u +%F)"
+docker compose exec redis redis-cli SET "limit:FMP:$(date -u +%F)" 10   # reset
 ```
+
+## Rate Limiting
+
+Each route enforces `fetch_interval` between upstream fetches. A request arriving early
+waits up to `fetch_max_wait`, then gets the cached value immediately however old it is.
+`?forceRefresh=true` skips the cache read but is still rate limited and still subject to
+the daily quota.
 
 ## Response Headers
 
 | Header | Meaning |
 |--------|---------|
-| `X-Cache: MISS` | First fetch (value stored in Redis) |
-| `X-Cache: HIT` | Served from Redis cache |
-| `X-Cache: STALE` | Upstream error, rate limit, or quota exceeded — stale value returned |
-
-`X-Cache-Stale-Reason` header gives the specific cause (`rate-limited`, `upstream-429`, `quota-exceeded`, etc.).
-
-## Rate Limiting
-
-Each route enforces a minimum interval between upstream fetches (`fetch_interval`, default 2s).
-If a request arrives before the interval has elapsed, it waits up to `fetch_max_wait` seconds
-(default 4s). If the wait would exceed `fetch_max_wait`, the latest cached value is returned
-immediately (even if days old). This applies to `?forceRefresh=true` as well.
-On upstream error or rate limit exceeded, stale data up to `stale_ttl` seconds old is served.
+| `X-Cache: HIT` | Served from Redis |
+| `X-Cache: MISS` | Fetched from upstream and stored |
+| `X-Cache: STALE` | Upstream problem; cached value served instead |
+| `X-Cache-Stale-Reason` | `rate-limited`, `quota-exceeded`, `upstream-429`, … |
 
 ## Error Codes
 
 | Code | Meaning |
 |------|---------|
-| `502` | Upstream fetch failed (network/other error) |
-| `503` | Upstream error, rate limit, or daily quota exceeded AND no cached value available |
-| `404` | Route not configured in config.yaml |
+| `404` | Upstream has no data for this key, or no such route. Not cached, not retried. |
+| `422` | A required query parameter is missing. |
+| `502` | Upstream responded but the body could not be parsed (selector drift, bad `json_field`), or the request failed outright. |
+| `503` | Upstream error, rate limit, or quota exceeded **and** no cached value exists. |
 
-## Testing with Docker
+`502` and `503` are deliberately different: `503` means "ask again later or take the
+stale value", `502` means "our extraction is broken and a human should look".
+
+## Operations
+
+| Endpoint | Purpose |
+|----------|---------|
+| `GET /health` | Liveness. |
+| `GET /__meta` | Service name and `APP_VERSION`. |
+| `GET /metrics` | Prometheus, including per-upstream client latency. |
+| `GET /stats` | Dashboard: per-route HIT/MISS/STALE/ERROR, key-age histogram, cache browser. |
+
+`/stats` also drives three admin endpoints. **They are unauthenticated and destructive —
+put them behind your ingress.**
+
+| Endpoint | Effect |
+|----------|--------|
+| `POST /stats/reset` | Zero all counters. |
+| `POST /stats/reset-cache/{prefix}` | Delete every key under a path prefix. |
+| `POST /stats/invalidate-keys` | Body `{"keys": [...]}`. Deletes exactly those keys. |
+
+`invalidate-keys` takes full keys rather than a `prefix/ticker` pattern, because a
+ticker alone cannot address a key that carries query segments. Both endpoints validate
+their input against cachest's own key charset, so a caller cannot pass a wildcard and
+flush a prefix — or the whole keyspace — by accident.
+
+## Testing
 
 ```sh
-docker compose --profile test run --rm test
+docker compose --profile test run --rm test     # local
+docker build --target test -t cachest-test . && docker run --rm cachest-test   # as CI runs it
 ```
+
+No services are required — every test mocks Redis and the upstream. Tests also run on
+every push and pull request via the `test` job in `.github/workflows/docker-image.yml`.
 
 ## Local Dev Without Docker
 
-1. Start a local Redis: `redis-server`
-2. Edit `config.yaml`: set `redis.host` to `"localhost"`
-3. Create venv and install deps:
-   ```sh
-   python -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-4. Run:
-   ```sh
-   uvicorn main:app --port 8080
-   ```
-5. Test:
-   ```sh
-   curl -D - http://localhost:8080/dyhistory/AAPL
-   ```
-
-## Verify Redis Key
-
 ```sh
-docker compose exec redis redis-cli GET "dyhistory:AAPL"
+redis-server
 ```
 
-## Teardown
+Set `redis.host: "localhost"` in `config.yaml`, then:
 
 ```sh
-docker compose down
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --port 8080
 ```
+
+Inspect a cached value:
+
+```sh
+redis-cli GET "dyhistory:AAPL"     # "<unix-ts>|<value>"
+```
+
+## Layout
+
+| File | Role |
+|------|------|
+| `main.py` | App wiring, request handler, stats page data. |
+| `config.py` | Config parsing and validation. |
+| `cache.py` | Redis access. The only module that talks to Redis. |
+| `keys.py` | Cache-key construction, patterns, and key safety. |
+| `fetcher.py` | Upstream fetch and extraction. |
+| `rate_limiter.py` | Per-route upstream spacing. |
+| `stats.py` | Per-route counters. |
+| `otel.py` | Metrics and tracing setup. |
+| `templates/`, `static/` | `/stats` page. Styles follow `.interface-design/system.md`. |

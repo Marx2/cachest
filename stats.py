@@ -1,8 +1,11 @@
 import asyncio
 import copy
-from dataclasses import dataclass, field
+import logging
+from dataclasses import dataclass
 
-from redis.asyncio import Redis
+logger = logging.getLogger("cachest.stats")
+
+FIELDS = ("total", "hits", "misses", "stale", "errors")
 
 
 @dataclass
@@ -14,13 +17,17 @@ class RouteStats:
     errors: int = 0
 
 
+# Counters live in-process for the dashboard and are mirrored to Redis so they survive
+# a restart. Both are best-effort: a Redis outage degrades the dashboard's durability,
+# never the request path.
 _registry: dict[str, RouteStats] = {}
-_redis: Redis | None = None
+_cache = None
+_tasks: set[asyncio.Task] = set()
 
 
-def init(client: Redis) -> None:
-    global _redis
-    _redis = client
+def init(cache) -> None:
+    global _cache
+    _cache = cache
 
 
 def get(path: str) -> RouteStats:
@@ -29,81 +36,89 @@ def get(path: str) -> RouteStats:
     return _registry[path]
 
 
+def _field_for(x_cache: str) -> str | None:
+    return {
+        "HIT": "hits",
+        "MISS": "misses",
+        "STALE": "stale",
+        "ERROR": "errors",
+    }.get(x_cache.upper())
+
+
 def record(path: str, x_cache: str) -> None:
     s = get(path)
     s.total += 1
-    tag = x_cache.upper()
-    field: str | None = None
-    if tag == "HIT":
-        s.hits += 1
-        field = "hits"
-    elif tag == "MISS":
-        s.misses += 1
-        field = "misses"
-    elif tag == "STALE":
-        s.stale += 1
-        field = "stale"
-    elif tag == "ERROR":
-        s.errors += 1
-        field = "errors"
+    field = _field_for(x_cache)
+    if field is not None:
+        setattr(s, field, getattr(s, field) + 1)
 
-    if _redis is not None:
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_persist(path, field))
-        except RuntimeError:
-            pass
+    if _cache is not None:
+        _schedule(_persist(path, field))
+
+
+def _schedule(coro) -> None:
+    """Run a write in the background without losing the task.
+
+    The task is held in a module-level set until it finishes, so a reference cycle
+    from the event loop cannot garbage-collect it mid-flight, and shutdown can drain
+    what is outstanding.
+    """
+    try:
+        task = asyncio.get_running_loop().create_task(coro)
+    except RuntimeError:
+        # No event loop (startup, or a plain synchronous call from a test).
+        coro.close()
+        return
+    _tasks.add(task)
+    task.add_done_callback(_tasks.discard)
+
+
+async def drain() -> None:
+    """Wait for outstanding counter writes. Called from lifespan shutdown."""
+    if _tasks:
+        await asyncio.gather(*list(_tasks), return_exceptions=True)
 
 
 def all_routes() -> dict[str, RouteStats]:
     return {k: copy.copy(v) for k, v in _registry.items()}
 
 
-def reset_all(client: Redis) -> None:
-    global _registry
-    _registry = {}
-    if client is not None:
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_delete_all_stats(client))
-        except RuntimeError:
-            pass
+def reset_all(cache) -> None:
+    _registry.clear()
+    if cache is not None:
+        _schedule(_delete_all_stats(cache))
 
 
-async def _delete_all_stats(client: Redis) -> None:
+async def _delete_all_stats(cache) -> None:
     try:
-        keys = [k async for k in client.scan_iter("stats:*")]
-        if keys:
-            await client.delete(*keys)
-    except Exception:
-        pass
+        await cache.delete_pattern("stats:*")
+    except Exception as e:
+        logger.warning("could not clear persisted stats: %s", e)
 
 
-async def load_from_redis(client: Redis) -> None:
+async def load_from_redis(cache) -> None:
     try:
-        async for key in client.scan_iter("stats:*"):
-            path = key.decode() if isinstance(key, bytes) else key
-            path = path[len("stats:"):]
-            data = await client.hgetall(f"stats:{path}")
-            if not data:
-                continue
-            s = get(path)
-            s.total = int(data.get(b"total", data.get("total", 0)))
-            s.hits = int(data.get(b"hits", data.get("hits", 0)))
-            s.misses = int(data.get(b"misses", data.get("misses", 0)))
-            s.stale = int(data.get(b"stale", data.get("stale", 0)))
-            s.errors = int(data.get(b"errors", data.get("errors", 0)))
-    except Exception:
-        pass
+        keys = await cache.scan_keys("stats:*")
+    except Exception as e:
+        # Counters start at zero for this process; the dashboard stays correct, it just
+        # forgets history. Worth a log line so the reset is not silent.
+        logger.warning("could not load stats from redis (starting from zero): %s", e)
+        return
+
+    for key in keys:
+        data = await cache.hgetall(key)
+        if not data:
+            continue
+        s = get(key[len("stats:"):])
+        for name in FIELDS:
+            setattr(s, name, int(data.get(name, 0) or 0))
 
 
 async def _persist(path: str, field: str | None) -> None:
+    increments = {"total": 1}
+    if field is not None:
+        increments[field] = 1
     try:
-        key = f"stats:{path}"
-        pipe = _redis.pipeline(transaction=False)
-        pipe.hincrby(key, "total", 1)
-        if field is not None:
-            pipe.hincrby(key, field, 1)
-        await pipe.execute()
-    except Exception:
-        pass
+        await _cache.hincrby_fields(f"stats:{path}", increments)
+    except Exception as e:
+        logger.debug("stats persist for %s failed: %s", path, e)
