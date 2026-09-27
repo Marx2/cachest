@@ -258,3 +258,15 @@ def test_real_config_has_no_two_routes_sharing_a_key_space():
 def test_real_config_quota_ttl_outlives_a_utc_day():
     """The counter for "today" must not expire before the day it counts is over."""
     assert QUOTA_TTL_SECONDS > 86400
+
+
+def test_redis_port_and_db_are_file_only(tmp_path, monkeypatch):
+    """Documents the asymmetry on purpose: REDIS_PORT/REDIS_DB were declared as env vars
+    in the cluster HelmRelease but never read, so they were a second source of truth
+    that silently did nothing. Only host and password have an env override.
+    """
+    monkeypatch.setenv("REDIS_PORT", "6380")
+    monkeypatch.setenv("REDIS_DB", "7")
+    redis = load(_write(tmp_path, MINIMAL)).redis
+    assert redis.port == 6379
+    assert redis.db == 0
