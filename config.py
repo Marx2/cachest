@@ -111,9 +111,14 @@ def load(path: str | Path) -> Config:
     raw = yaml.safe_load(Path(path).read_text()) or {}
 
     redis_raw = raw.get("redis") or {}
+    # host and password can be overridden from the environment; port and db are
+    # file-only. The cluster sets all four in the mounted configmap and used to also
+    # declare REDIS_PORT/REDIS_DB as env vars, which were silently ignored — hence the
+    # explicit asymmetry rather than an env var that looks supported but is not.
     redis_cfg = RedisConfig(
         host=os.environ.get("REDIS_HOST") or redis_raw.get("host", "localhost"),
         port=int(redis_raw.get("port", 6379)),
+        # {api_key}/password never reach a log line, the stats page, or a cache key.
         password=os.environ.get("REDIS_PASSWORD") or redis_raw.get("password", "") or "",
         db=int(redis_raw.get("db", 0)),
     )
