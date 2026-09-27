@@ -1,6 +1,7 @@
 import httpx
 import pytest
 import respx
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import AsyncMock, MagicMock, patch
 from fastapi.testclient import TestClient
 
@@ -590,6 +591,80 @@ def test_every_configured_route_registers_a_fastapi_route():
     registered = {r.path for r in app.routes if hasattr(r, "path")}
     missing = [r.path for r in cfg.routes if r.path not in registered]
     assert not missing, f"routes not registered: {missing}"
+
+
+# --- queue depth against the REAL limiter (plan §63.9) ---------------------
+#
+# The other tests here stub RateLimiter out, which is exactly why the depth-3
+# regression survived: with acquire() mocked to always allow, the whole rate
+# limiter is invisible. These two run the real one against the shipped config.
+# A rejected request never reaches the provider, so on the PROD sweep it looked
+# indistinguishable from a provider outage and parked the symbol for an hour.
+
+
+def _real_limiter_client(mock_cache, cfg):
+    with patch("main.RedisCache", return_value=mock_cache):
+        return TestClient(create_app(cfg))
+
+
+@pytest.mark.parametrize("route_path,url", [
+    ("/ohlcv/{ticker}", "/ohlcv/XTB.WA?start=2026-09-01&end=2026-09-26"),
+    ("/equity/quote/{ticker}", "/equity/quote/SNT.WA"),
+    ("/logo/{ticker}", "/logo/SNT.WA"),
+])
+def test_shipped_ohlcv_route_serves_a_full_portfolio_sweep(mock_cache, route_path, url):
+    """16 concurrent callers, the real RateLimiter, the shipped interval/max_wait.
+
+    All 16 must reach the upstream. Anything else is a silent hole: the caller
+    gets a 503 for a request the provider was never asked to make.
+    """
+    cfg = load(REAL_CONFIG)
+    route = next(r for r in cfg.routes if r.path == route_path)
+
+    calls = []
+
+    async def fake_fetch(u, *a, **kw):
+        calls.append(u)
+        return "[]"
+
+    with patch("main.fetch", new=fake_fetch):
+        with _real_limiter_client(mock_cache, cfg) as c:
+            with ThreadPoolExecutor(max_workers=16) as pool:
+                responses = list(
+                    pool.map(lambda _i: c.get(f"{url}&forceRefresh=true"), range(16))
+                )
+
+    codes = [r.status_code for r in responses]
+    assert codes == [200] * 16, (
+        f"{route_path}: {codes.count(503)} of 16 callers were rate-limited with no "
+        f"upstream call (queue_depth={route.queue_depth}); upstream saw {len(calls)} request(s)"
+    )
+    assert len(calls) == 16, "every caller should have reached the upstream exactly once"
+    assert route.queue_depth >= 16, (
+        f"{route.path}: queue_depth {route.queue_depth} passed 16 callers by luck of "
+        "scheduling, but cannot absorb a page of them"
+    )
+
+
+def test_shipped_singleton_route_is_still_serialized(mock_cache):
+    """The one deliberate depth-1 route must keep rejecting, or the exemption in
+    tests/test_config.py is stale."""
+    cfg = load(REAL_CONFIG)
+    route = next(r for r in cfg.routes if r.name == "OPENST_CORP_BOND_CATALOGUE")
+    assert route.queue_depth == 1
+
+    async def fake_fetch(url, *a, **kw):
+        return "[]"
+
+    with patch("main.fetch", new=fake_fetch):
+        with _real_limiter_client(mock_cache, cfg) as c:
+            with ThreadPoolExecutor(max_workers=4) as pool:
+                responses = list(pool.map(lambda _i: c.get("/corp-bond/catalogue"), range(4)))
+
+    assert responses[0].status_code == 200
+    assert any(r.status_code == 503 for r in responses[1:]), (
+        "a depth-1 route served 4 concurrent callers — the queue-depth arithmetic drifted"
+    )
 
 
 def test_configured_query_param_routes_reject_a_missing_param(client):

@@ -16,6 +16,10 @@ QUOTA_TTL_SECONDS = 90_000
 
 DEFAULT_STALE_TTL = 2592000  # 30 days
 
+# Depth returned by RouteConfig.queue_depth when there is no pacing at all
+# (``fetch_interval: 0``) — nothing to queue behind, so nothing can be rejected.
+UNBOUNDED_QUEUE = -1
+
 
 class ConfigError(Exception):
     """Raised for a config.yaml that would misbehave at runtime."""
@@ -43,6 +47,29 @@ class RouteConfig:
     fetch_timeout: float = 15.0
     stale_ttl: int = DEFAULT_STALE_TTL
     query_params: list[str] = field(default_factory=list)
+
+    @property
+    def queue_depth(self) -> int:
+        """How many concurrent upstream fetches this route admits.
+
+        ``RateLimiter`` claims its slot as ``last = now + sleep`` (``rate_limiter.py``),
+        so the Nth waiter sleeps ``N * fetch_interval``: ``fetch_max_wait`` is a
+        **total queueing budget**, not a per-request patience, and the depth it
+        implies is ``floor(fetch_max_wait / fetch_interval) + 1``.
+
+        That makes this a hard *concurrency* cap in disguise: anything past it is
+        rejected with an instant ``503`` and no upstream call at all, so a route
+        whose callers legitimately fan out wider than this starves the ones that
+        lose the race. ``fetch_interval: 2`` / ``fetch_max_wait: 4`` — the shape
+        most routes shipped with — is depth 3, which a single portfolio sweep
+        (175+ symbols) blows through; see plan §63.9.
+
+        A route's depth must therefore exceed the widest concurrent burst its
+        callers produce. ``tests/test_config.py`` pins that per route.
+        """
+        if self.fetch_interval <= 0:
+            return UNBOUNDED_QUEUE
+        return int(self.fetch_max_wait // self.fetch_interval) + 1
 
 
 @dataclass
