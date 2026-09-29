@@ -662,11 +662,20 @@ def test_shipped_singleton_route_is_still_serialized(mock_cache):
             with ThreadPoolExecutor(max_workers=4) as pool:
                 responses = list(pool.map(lambda _i: c.get("/corp-bond/catalogue"), range(4)))
 
-    # Assert the multiset, never a position. `pool.map` yields results in SUBMISSION
-    # order, and which of the 4 threads wins the depth-1 semaphore is scheduler luck —
-    # so `responses[0] == 200` was a coin flip that failed in CI on 2026-09-27. The
-    # invariant under test is serialization, not thread identity: exactly one caller is
-    # served, the other three are rejected without an upstream call.
+    # Assert the multiset, never a position. `pool.map` yields results in
+    # SUBMISSION order, and which of the 4 threads wins the depth-1 semaphore is
+    # scheduler luck, so `responses[0] == 200` was a weak assertion to begin
+    # with: it would also have passed on [200, 200, 503, 503], the opposite
+    # failure. The only accepted outcome is exactly one caller served
+    # (fetch_interval=60 > fetch_max_wait=4, so no second caller can be served
+    # within this test's lifetime).
+    #
+    # What actually made this fail in CI was neither of those: it was the
+    # RateLimiter's _last_fetch=0.0 sentinel reading a near-zero
+    # time.monotonic() as "a fetch just happened" and rejecting all four
+    # callers. Fixed in rate_limiter.py, with the clock pinned in
+    # test_rate_limiter.py. This assertion is what surfaced that, because it
+    # demands a 200 rather than merely tolerating one.
     codes = sorted(r.status_code for r in responses)
     assert codes == [200, 503, 503, 503], (
         f"a depth-1 route served {codes.count(200)} of 4 concurrent callers — "
