@@ -25,6 +25,11 @@ jobs:
         run: docker run --rm cachest-test
 
   release:
+    # A red suite must not produce a tag or a GitHub Release. Previously `build`
+    # needed only `release`, so a failing test still shipped an image (v1.0.44
+    # was published with a red suite on 2026-09-27 and nothing noticed). Gating
+    # the release itself is the strong form: no bump, no tag, no image.
+    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -59,11 +64,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: release
+    # `always()` bypasses the implicit skip that `needs:` would otherwise cause,
+    # so listing `test` here is NOT a gate on its own — the push branch has to
+    # assert needs.test.result explicitly or a red suite still ships an image.
+    needs: [release, test]
     if: |
       always() &&
       (github.event_name == 'pull_request' ||
-       (github.event_name == 'push' && needs.release.result == 'success'))
+       (github.event_name == 'push' &&
+        needs.release.result == 'success' &&
+        needs.test.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
       contents: read
