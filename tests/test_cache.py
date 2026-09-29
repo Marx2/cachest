@@ -19,6 +19,7 @@ def redis_mock():
     r.hgetall = AsyncMock()
     r.aclose = AsyncMock()
     r.pipeline = MagicMock()
+    r.ping = AsyncMock()
     return r
 
 
@@ -265,3 +266,26 @@ async def test_hincrby_fields_pipelines_in_one_round_trip(cache, redis_mock):
 async def test_hincrby_fields_empty_does_nothing(cache, redis_mock):
     await cache.hincrby_fields("stats:/a", {})
     redis_mock.pipeline.assert_not_called()
+
+
+# --- ping (§64.2 — the readiness probe's only real signal) -------------------
+
+
+async def test_ping_is_true_when_redis_answers(cache, redis_mock):
+    redis_mock.ping = AsyncMock(return_value=True)
+    assert await cache.ping() is True
+
+
+async def test_ping_is_false_when_redis_raises(cache, redis_mock):
+    """The load-bearing case. A pooled connection can look established while the
+    server is gone, so ping() must survive the exception and report False —
+    otherwise /ready 500s instead of 503 and the probe reads as a crash."""
+    redis_mock.ping = AsyncMock(side_effect=ConnectionError("server went away"))
+    assert await cache.ping() is False
+
+
+async def test_ping_is_false_when_redis_answers_falsy(cache, redis_mock):
+    """A non-True reply must not leak through as truthy: `bool()` is the coercion
+    that keeps the route's status_code choice honest."""
+    redis_mock.ping = AsyncMock(return_value=0)
+    assert await cache.ping() is False
