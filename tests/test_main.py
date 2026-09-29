@@ -662,9 +662,15 @@ def test_shipped_singleton_route_is_still_serialized(mock_cache):
             with ThreadPoolExecutor(max_workers=4) as pool:
                 responses = list(pool.map(lambda _i: c.get("/corp-bond/catalogue"), range(4)))
 
-    assert responses[0].status_code == 200
-    assert any(r.status_code == 503 for r in responses[1:]), (
-        "a depth-1 route served 4 concurrent callers — the queue-depth arithmetic drifted"
+    # Assert the multiset, never a position. `pool.map` yields results in SUBMISSION
+    # order, and which of the 4 threads wins the depth-1 semaphore is scheduler luck —
+    # so `responses[0] == 200` was a coin flip that failed in CI on 2026-09-27. The
+    # invariant under test is serialization, not thread identity: exactly one caller is
+    # served, the other three are rejected without an upstream call.
+    codes = sorted(r.status_code for r in responses)
+    assert codes == [200, 503, 503, 503], (
+        f"a depth-1 route served {codes.count(200)} of 4 concurrent callers — "
+        f"expected exactly 1 (fetch_interval=60 > fetch_max_wait=4)"
     )
 
 
