@@ -34,6 +34,7 @@ def mock_cache():
     cache.get_fresh_or_stale = AsyncMock(return_value=None)
     cache.set = AsyncMock()
     cache.close = AsyncMock()
+    cache.ping = AsyncMock(return_value=True)
     cache.incr_with_ttl = AsyncMock(return_value=1)
     cache.delete_pattern = AsyncMock(return_value=0)
     cache.delete_keys = AsyncMock(return_value=0)
@@ -686,3 +687,31 @@ def test_every_route_key_matches_its_own_attribution_pattern():
             {p: "X" for p in route.query_params},
         )
         assert key_pattern(route.path, route.query_params).match(key), route.path
+
+
+# --- §64.2 readiness: Redis gates readiness, never liveness -------------------
+
+
+def test_ready_ok_when_redis_is_reachable(mock_cache, client):
+    assert client().get("/ready").json() == {"status": "ready", "redis": "ok"}
+
+
+def test_ready_reports_503_when_redis_is_unreachable(mock_cache, client):
+    """The pod must leave rotation when the cache is gone — serving from it
+    would mean a full upstream walk per request."""
+    mock_cache.ping = AsyncMock(return_value=False)
+    r = client().get("/ready")
+    assert r.status_code == 503
+    assert r.json() == {"status": "degraded", "redis": "unreachable"}
+
+
+def test_health_stays_ok_while_redis_is_down(mock_cache, client):
+    """§64.2 — the load-bearing half. A liveness probe that touched Redis would
+    restart-loop the pod during a cache blip, and restarting it cannot fix the
+    cache; it only removes the one pod still answering."""
+    mock_cache.ping = AsyncMock(return_value=False)
+    assert client().get("/health").json() == {"status": "ok"}
+
+# The "ping raises" case belongs on RedisCache.ping itself, in test_cache.py:
+# mocking `ping` away replaces the very try/except that makes it safe, so a route
+# test would be asserting the mock, not the behaviour.

@@ -189,7 +189,8 @@ stale value", `502` means "our extraction is broken and a human should look".
 
 | Endpoint | Purpose |
 |----------|---------|
-| `GET /health` | Liveness. |
+| `GET /health` | Liveness. Never touches Redis, on purpose — a dependency-aware liveness probe would restart-loop the pod during a cache blip, and restarting it cannot fix the cache. |
+| `GET /ready` | Readiness. `503 {"status":"degraded","redis":"unreachable"}` when Redis is unreachable, `200` otherwise. `get`/`set` degrade to cache misses, so without this the pod keeps taking traffic and pays a full upstream walk per request. |
 | `GET /__meta` | Service name and `APP_VERSION`. |
 | `GET /metrics` | Prometheus, including per-upstream client latency. |
 | `GET /stats` | Dashboard: per-route HIT/MISS/STALE/ERROR, key-age histogram, cache browser. |

@@ -299,6 +299,25 @@ def create_app(config: Config) -> FastAPI:
     async def health():
         return JSONResponse({"status": "ok"})
 
+    @app.get("/ready", include_in_schema=False)
+    async def ready():
+        """Readiness — can this pod serve traffic usefully?
+
+        §64.2. Fails when Redis is unreachable. `/health` stays pure liveness and
+        never touches Redis on purpose: a dependency-aware *liveness* probe
+        restart-loops the pod during a cache blip, and restarting it cannot fix
+        the cache — it only removes the one pod that is answering. Since
+        `RedisCache.get/set` degrade to misses, this pod would keep returning
+        200s from `/health` while every request paid a full upstream walk, so
+        readiness is the honest place to drop it from rotation.
+        """
+        redis_ok = await cache.ping()
+        body = {
+            "status": "ready" if redis_ok else "degraded",
+            "redis": "ok" if redis_ok else "unreachable",
+        }
+        return JSONResponse(body, status_code=200 if redis_ok else 503)
+
     _favicon = (BASE_DIR / "favicon.svg").read_bytes()
 
     @app.get("/favicon.ico", include_in_schema=False)

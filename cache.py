@@ -31,6 +31,19 @@ class RedisCache:
             decode_responses=True,
         )
 
+    async def ping(self) -> bool:
+        """§64.2 — is the cache actually reachable right now?
+
+        For the readiness probe. Deliberately a real round-trip rather than
+        trusting a connection flag: a pooled connection can look established
+        while the server has gone away, and readiness is the only honest place
+        to drop this pod from rotation.
+        """
+        try:
+            return bool(await self._client.ping())
+        except Exception:
+            return False
+
     async def get(self, key: str, cache_ttl: int) -> str:
         """Return the value, or raise CacheMiss (absent/unparseable) / CacheStale (too old)."""
         raw = await self._client.get(key)
