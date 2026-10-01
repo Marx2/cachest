@@ -113,6 +113,27 @@ routes:
     fetch_max_wait: 120
     fetch_timeout: 120         # biznesradar multi-page scrape can take ~20s
 
+  # plan §72.39 step 2, stage 4 — fund *category* NAV (analizy.pl), keyed on the
+  # provider's own category code (ING01W) rather than a .TFI symbol. A PPO/PPI
+  # broker executes against the category NAV, which no other provider we carry
+  # serves; ING01W reproduces four of five stored executed prices to the cent.
+  #
+  # TTL mirrors OPENST_OHLCV_FUNDS: same data (daily NAV), same once-per-business-
+  # day cadence. The upstream sets no cache headers of its own, so this is ours.
+  #
+  # An unknown code is an upstream 404, which main.py passes straight through
+  # without caching (a 404 means "no data for this key", not an outage) — so a
+  # guessed code stays a loud error instead of a cached empty series.
+  - name: OPENST_FUND_CATEGORY_HISTORY
+    path: /fund/history/{code}
+    url: "http://openst:8080/fund/history/{code}?start={start}&end={end}"
+    query_params: [start, end]
+    cache_ttl: 86400           # 24h — NAV updates once per business day
+    stale_ttl: 2592000
+    fetch_interval: 0.2         # single JSON GET, no pagination to pace
+    fetch_max_wait: 120
+    fetch_timeout: 30
+
   - name: OPENST_CRYPTO_OHLCV
     path: /crypto/ohlcv/{pair}
     url: "http://openst:8080/crypto/ohlcv/{pair}?start={start}&end={end}"

@@ -374,3 +374,86 @@ def test_redis_port_and_db_are_file_only(tmp_path, monkeypatch):
     redis = load(_write(tmp_path, MINIMAL)).redis
     assert redis.port == 6379
     assert redis.db == 0
+
+
+# --- fund *category* NAV (plan §72.39 step 2, stage 4) ---------------------
+#
+# Distinct from OPENST_OHLCV_FUNDS: that one carries the fund's default category
+# keyed on a .TFI symbol, this one carries the category the broker actually
+# executes against, keyed on the provider's own code (ING01W). They must not
+# share a key space, or one would serve the other's data — and the difference
+# between the two is the whole ~12.7% class gap this work exists to close.
+
+FUND_CATEGORY_PATH = "/fund/history/{code}"
+
+
+def test_real_config_has_fund_category_history_route():
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name.get("OPENST_FUND_CATEGORY_HISTORY")
+    assert route is not None, "the fund-category route is gone"
+    assert route.path == FUND_CATEGORY_PATH
+    assert route.url == (
+        "http://openst:8080/fund/history/{code}?start={start}&end={end}"
+    )
+    assert route.query_params == ["start", "end"]
+
+
+def test_fund_category_route_does_not_collide_with_the_default_category_route():
+    """/ohlcv/fund/{ticker} serves category A; this serves the traded category.
+
+    Same underlying data shape, different key space. A collision would let a
+    request for ING01W return ING01's bars — silently, and with the right shape.
+    """
+    cfg = load(REAL_CONFIG)
+    by_path = {r.path: r for r in cfg.routes}
+    a = key_pattern(by_path["/ohlcv/fund/{ticker}"].path,
+                    by_path["/ohlcv/fund/{ticker}"].query_params).pattern
+    w = key_pattern(by_path[FUND_CATEGORY_PATH].path,
+                    by_path[FUND_CATEGORY_PATH].query_params).pattern
+    assert a != w
+
+
+def test_fund_category_route_caches_for_a_business_day():
+    """NAV moves once per valuation day, so 24h — matching OPENST_OHLCV_FUNDS.
+
+    The upstream sends `cache-control: no-cache, private`, so it caches nothing
+    on our behalf and this TTL is the only cache in the path.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name["OPENST_FUND_CATEGORY_HISTORY"]
+    funds = by_name["OPENST_OHLCV_FUNDS"]
+    assert route.cache_ttl == funds.cache_ttl == 86400
+    assert route.stale_ttl == funds.stale_ttl
+
+
+def test_fund_category_route_keeps_real_fetch_spacing():
+    """Not exempted from pacing: it proxies an external site, one GET per miss.
+
+    Cheaper than the biznesradar scrape behind OPENST_OHLCV_FUNDS (no pagination,
+    ~0.3s per call) but still an external request, so it keeps spacing rather
+    than adopting the 0.0 floor.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    assert by_name["OPENST_FUND_CATEGORY_HISTORY"].fetch_interval >= 0.2
+
+
+def test_fund_category_route_admits_a_ui_page_of_callers():
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    assert by_name["OPENST_FUND_CATEGORY_HISTORY"].queue_depth >= MIN_UI_DEPTH
+
+
+def test_fund_category_route_timeout_fits_a_single_json_get():
+    """30 s, not the 120 s the biznesradar scrape needs — this is one request.
+
+    Measured live at 0.18–0.34 s. The loose timeout would only delay the 404
+    passthrough for an unknown code.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name["OPENST_FUND_CATEGORY_HISTORY"]
+    assert route.fetch_timeout == 30
+    assert route.fetch_timeout < by_name["OPENST_OHLCV_FUNDS"].fetch_timeout
