@@ -457,3 +457,101 @@ def test_fund_category_route_timeout_fits_a_single_json_get():
     route = by_name["OPENST_FUND_CATEGORY_HISTORY"]
     assert route.fetch_timeout == 30
     assert route.fetch_timeout < by_name["OPENST_OHLCV_FUNDS"].fetch_timeout
+
+
+# --- fund catalogue + search (plan §78 step 4) ------------------------------
+#
+# Both routes serve openst's snapshot rather than scraping anything, so unlike
+# the bond-catalogue route there is no external fetch to pace. They exist so the
+# instruments side has one place to read the corpus from, and so the corpus can
+# be cached above the per-keystroke search.
+
+FUND_CATALOGUE_PATH = "/fund/catalogue"
+FUND_SEARCH_PATH = "/fund/search/{query}"
+
+
+def test_real_config_has_fund_catalogue_route():
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name.get("OPENST_FUND_CATALOGUE")
+    assert route is not None, "the fund-catalogue route is gone"
+    assert route.path == FUND_CATALOGUE_PATH
+    assert route.url == "http://openst:8080/fund/catalogue"
+    assert route.query_params == []
+
+
+def test_real_config_has_fund_search_route():
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name.get("OPENST_FUND_SEARCH")
+    assert route is not None, "the fund-search route is gone"
+    assert route.path == FUND_SEARCH_PATH
+    assert route.url == "http://openst:8080/fund/search/{query}"
+
+
+def test_fund_search_and_fund_history_do_not_collide():
+    """`/fund/search/{query}` and `/fund/history/{code}` are two-segment siblings.
+
+    A key-space collision here would serve search hits as price bars, so both are
+    checked explicitly rather than relying on the global uniqueness test.
+    """
+    cfg = load(REAL_CONFIG)
+    by_path = {r.path: r for r in cfg.routes}
+    for path in (FUND_CATALOGUE_PATH, FUND_SEARCH_PATH, "/fund/history/{code}"):
+        assert path in by_path, f"{path} no longer exists"
+    search_pattern = key_pattern(
+        by_path[FUND_SEARCH_PATH].path, by_path[FUND_SEARCH_PATH].query_params
+    ).pattern
+    history_pattern = key_pattern(
+        by_path["/fund/history/{code}"].path, by_path["/fund/history/{code}"].query_params
+    ).pattern
+    assert search_pattern != history_pattern
+
+
+def test_fund_catalogue_ttl_matches_the_corp_bond_catalogue():
+    """Both back a daily refresh job, so they carry the same TTL by the same
+    reasoning — a job that can miss a refresh because of a stale cache is a job
+    that silently does nothing."""
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name["OPENST_FUND_CATALOGUE"]
+    corp = by_name["OPENST_CORP_BOND_CATALOGUE"]
+    assert route.cache_ttl == corp.cache_ttl == 43200
+    assert route.stale_ttl == corp.stale_ttl
+
+
+def test_fund_search_ttl_matches_the_bond_search():
+    """Per-keystroke searches share a TTL, unlike the crypto universe search.
+
+    The 7d TTL on OPENST_CRYPTO_SEARCH fits a universe that changes rarely; a
+    fund catalogue refreshed daily does not, and inheriting 7d would make a new
+    fund unfindable for a week.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name["OPENST_FUND_SEARCH"]
+    assert route.cache_ttl == by_name["OPENST_BOND_SEARCH"].cache_ttl == 3600
+    assert route.cache_ttl < by_name["OPENST_CRYPTO_SEARCH"].cache_ttl
+
+
+def test_fund_routes_are_not_paced_like_scrapers():
+    """No external fetch happens per request, so they keep the light spacing.
+
+    They are deliberately NOT in the §63.9.1 scraper set: `fetch_interval >= 0.5`
+    is for routes that proxy a scrape upstream, and these read a local snapshot.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    for name in ("OPENST_FUND_CATALOGUE", "OPENST_FUND_SEARCH"):
+        assert by_name[name].fetch_interval >= 0.2, f"{name} should not be serialized"
+        assert by_name[name].fetch_interval < 0.5, (
+            f"{name} reads a snapshot, not a scraper — the 0.5s scraper spacing "
+            "would throttle a keystroke-rate route for no reason"
+        )
+
+
+def test_fund_routes_admit_a_ui_page_of_callers():
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    for name in ("OPENST_FUND_CATALOGUE", "OPENST_FUND_SEARCH"):
+        assert by_name[name].queue_depth >= MIN_UI_DEPTH, name

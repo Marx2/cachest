@@ -206,6 +206,32 @@ routes:
     fetch_interval: 0.2
     fetch_max_wait: 120
 
+  # plan §78 steps 2-4 — the fund-category catalogue and its search. Both are
+  # served from openst's snapshot, not scraped: the corpus is 734 codes built by
+  # a refresh job, so there is no per-request upstream work to pace here.
+  #
+  # TTLs follow their peers deliberately — the catalogue mirrors
+  # CORP_BOND_CATALOGUE (a daily job must see a fresh-enough snapshot) and the
+  # search mirrors OPENST_BOND_SEARCH (per-keystroke, so a short TTL and a real
+  # one-hour floor rather than the 7d of the crypto universe search).
+  - name: OPENST_FUND_CATALOGUE
+    path: /fund/catalogue
+    url: "http://openst:8080/fund/catalogue"
+    cache_ttl: 43200           # 12h — daily refresh job must see a new snapshot
+    stale_ttl: 2592000
+    fetch_interval: 0.2
+    fetch_max_wait: 120
+    fetch_timeout: 30
+
+  - name: OPENST_FUND_SEARCH
+    path: /fund/search/{query}
+    url: "http://openst:8080/fund/search/{query}"
+    cache_ttl: 3600            # 1h — catalogue moves daily
+    stale_ttl: 2592000
+    fetch_interval: 0.2
+    fetch_max_wait: 120
+    fetch_timeout: 30
+
   - name: OPENST_CRYPTO_SEARCH
     path: /crypto/search/{query}
     url: "http://openst:8080/crypto/search/{query}"
