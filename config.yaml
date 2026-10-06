@@ -252,7 +252,13 @@ routes:
     path: /fundamentals/{ticker}
     url: "http://openst:8080/equity/fundamentals/{ticker}?statement={statement}&period={period}"
     query_params: [statement, period]
-    cache_ttl: 86400           # 24h
+    # 7d, was 24h. The instruments module now owns freshness for statements: it
+    # persists them in Postgres and only asks again when its own window has
+    # passed (30d annual, 7d quarter — pfire-docs #51). This TTL no longer decides
+    # how fresh the data is, only how often a cold cache re-walks the providers.
+    # One route serves both periods so they cannot get separate TTLs here, and 7d
+    # sits inside both windows rather than outside either.
+    cache_ttl: 604800
     stale_ttl: 2592000
     fetch_interval: 0.2
     fetch_max_wait: 120
