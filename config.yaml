@@ -276,7 +276,12 @@ routes:
     path: /calendar/dividend
     url: "http://openst:8080/equity/calendar/dividend?start={start}&end={end}"
     query_params: [start, end]
-    cache_ttl: 3600            # 1h
+    # 1h kept: with #71 the per-symbol store dominates the dividend calendar
+    # path, but this global route is still the only source for GPW (fmp 402 /
+    # nasdaq 403 leave it the last contributor). Declared GPW coupon rows and
+    # fmp's forward US ex-dates can arrive at any time, so this TTL still
+    # bounds how quickly "new" means "visible" there.
+    cache_ttl: 3600
     stale_ttl: 2592000
     fetch_interval: 0.2
     fetch_max_wait: 120
@@ -292,7 +297,12 @@ routes:
   - name: OPENST_DIVIDENDS
     path: /dividends/{ticker}
     url: "http://openst:8080/dividend/history/{ticker}"
-    cache_ttl: 86400           # 24h — dividend history is static
+    # 7d, was 24h. The instruments module now owns dividend freshness: it
+    # persists history + predicted rows in Postgres and only asks again when
+    # its own window has passed (7d history / 7d predicted / 7d empty backoff —
+    # pfire-docs #71). This TTL no longer decides how fresh the data is, only
+    # how often a cold cache re-walks the providers.
+    cache_ttl: 604800
     stale_ttl: 2592000
     fetch_interval: 0.2
     fetch_max_wait: 120
