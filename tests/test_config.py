@@ -555,3 +555,52 @@ def test_fund_routes_admit_a_ui_page_of_callers():
     by_name = {r.name: r for r in cfg.routes}
     for name in ("OPENST_FUND_CATALOGUE", "OPENST_FUND_SEARCH"):
         assert by_name[name].queue_depth >= MIN_UI_DEPTH, name
+
+
+def test_fundamentals_route_caches_for_a_week():
+    """7d, because the store owns freshness (pfire-docs #51).
+
+    This route used to carry the freshness decision itself at 24h. It no longer
+    does: the instruments module persists statements in Postgres and revalidates
+    on its own clock — 30d for annual, 7d for quarterly — so a 24h TTL here only
+    decided how often a cold cache re-walked the providers, not how old the data
+    could be. 7d sits inside both of those windows rather than outside either,
+    which is what keeps a cached body from ever being older than the store's own
+    revalidation point.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    route = by_name["OPENST_FUNDAMENTALS"]
+    assert route.cache_ttl == 604800
+    assert route.stale_ttl == 2592000
+
+
+def test_fundamentals_ttl_does_not_outlive_the_store_windows():
+    """A TTL longer than the store's window would serve a body the store has
+    already decided is due for a refetch, so the two clocks would disagree and
+    the longer one would win. 7d must stay within the quarterly window."""
+    cfg = load(REAL_CONFIG)
+    route = {r.name: r for r in cfg.routes}["OPENST_FUNDAMENTALS"]
+    quarterly_window = 7 * 24 * 3600
+    assert route.cache_ttl <= quarterly_window
+
+
+def test_metrics_route_keeps_the_price_derived_ttl():
+    """`/equity/metrics` stays at 24h on purpose.
+
+    P/E, market cap and the margins are price-derived, so they are wrong within
+    a trading day — and the store's metrics window is 1 day. Stretching this TTL
+    would desynchronise the two clocks for no gain: the ratios would be older
+    than the window that says they are due.
+    """
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    assert by_name["OPENST_METRICS"].cache_ttl == 86400
+
+
+def test_mda_route_is_untouched_by_the_store():
+    """MD&A is prose rewritten every quarter and is deliberately NOT in the
+    store, so its TTL must not have been stretched along with the statements."""
+    cfg = load(REAL_CONFIG)
+    by_name = {r.name: r for r in cfg.routes}
+    assert by_name["OPENST_MDA"].cache_ttl == 604800
