@@ -101,6 +101,27 @@ appended per query param:
 Sibling routes never share a key, which is what lets `/stats` attribute every key to
 exactly one route.
 
+### When a TTL is not the freshness decision
+
+A `cache_ttl` normally answers "how old can this get". For the fundamentals route it no
+longer does, and the reason is worth stating because the config comment cannot enforce it.
+
+`portfoliost-instruments` persists financial statements in Postgres and revalidates on
+its own clock — 30 days for annual scopes, 7 for quarterly, 1 for the metrics snapshot
+(pfire-docs #51). So for `OPENST_FUNDAMENTALS` the TTL here only bounds **how often a
+cold cache re-walks the provider chain**: one walk a week per symbol instead of one a
+day. Nothing reads this TTL to decide whether data is stale, because the store does.
+
+The constraint that keeps the two from drifting is that `cache_ttl` must stay **within**
+the store's window, never beyond it. A longer TTL here means cachest can serve a body the
+store has already decided is due for a refetch, and the cache silently wins with nothing
+logging the disagreement. `test_fundamentals_ttl_does_not_outlive_the_store_windows`
+asserts it.
+
+`OPENST_METRICS` and `OPENST_MDA` stay on their own TTLs and are *not* covered by that
+rule, because the store holds neither: metrics are a snapshot whose ratios go stale within
+a trading day, and MD&A is prose rewritten every quarter.
+
 ## API Keys
 
 Routes with `{api_key}` in their URL get it injected at load time from the environment.
