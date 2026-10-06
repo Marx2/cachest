@@ -122,6 +122,16 @@ asserts it.
 rule, because the store holds neither: metrics are a snapshot whose ratios go stale within
 a trading day, and MD&A is prose rewritten every quarter.
 
+### The same rule now applies to dividends
+
+The dividends store (pfire-docs #71) has one revalidation window for everything that comes
+through `/dividends/{ticker}` — 7 days, plus the 7-day empty scope backoff — so
+`OPENST_DIVIDENDS` moves to `cache_ttl: 604800`: the store is the freshness clock, and this
+TTL only bounds how often a cold cache fans out at openst. `OPENST_CALENDAR_DIVIDEND`
+stays at 3600: per-symbol calendar reads are store-served now, but this global route is
+still the last working source for GPW (fmp 402 / nasdaq 403), and declared coupons and
+forward ex-dates arrive continuously — 1h is how quickly "new" means "visible".
+
 ## API Keys
 
 Routes with `{api_key}` in their URL get it injected at load time from the environment.
