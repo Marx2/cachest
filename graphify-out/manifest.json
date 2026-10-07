@@ -1,67 +1,79 @@
 {
   "/Users/i318088/prv/pfire/cachest/config.py": {
-    "mtime": 1789418852.101481,
-    "hash": "5f3c955f41e21fe323f2c9fe358e9988"
+    "mtime": 1790525879.698291,
+    "hash": "1d7fa5568870e68d5c8915812ef37205"
   },
   "/Users/i318088/prv/pfire/cachest/rate_limiter.py": {
-    "mtime": 1778449760.1795955,
-    "hash": "d37d4aac1259e6e7e22ecf8e5bedc1b7"
+    "mtime": 1790711096.2525399,
+    "hash": "f11966e773a941789d617cc7d6c8a7dd"
   },
   "/Users/i318088/prv/pfire/cachest/cache.py": {
-    "mtime": 1779826582.6564517,
-    "hash": "6a424ffbc079a9eeb81eeea00f781b65"
+    "mtime": 1790703663.6622403,
+    "hash": "073970307d8bafda7627245549235219"
+  },
+  "/Users/i318088/prv/pfire/cachest/keys.py": {
+    "mtime": 1790514478.808185,
+    "hash": "cee19bee12c9fe613731a61ff2325d69"
   },
   "/Users/i318088/prv/pfire/cachest/stats.py": {
-    "mtime": 1779622202.7339761,
-    "hash": "f1f3d3efca1df1f3e4d1f046d3f1f803"
+    "mtime": 1790513781.9622598,
+    "hash": "d630ffef52f5c959f6e8304d8561b4b0"
   },
   "/Users/i318088/prv/pfire/cachest/main.py": {
-    "mtime": 1789418865.3070183,
-    "hash": "792c0f0b08914202916c0c2554982c0b"
+    "mtime": 1790703663.665583,
+    "hash": "15133e183cdcef2b3c5f5d848bea6cdf"
   },
   "/Users/i318088/prv/pfire/cachest/otel.py": {
     "mtime": 1789103603.4942765,
     "hash": "cf80f2e520b88f65240a745444168b1d"
   },
   "/Users/i318088/prv/pfire/cachest/fetcher.py": {
-    "mtime": 1789418860.771967,
-    "hash": "632a83eb4b919873cadc0bdb9ad27f3c"
+    "mtime": 1790513696.9983907,
+    "hash": "1b8c2cb6b14126fa0adb1203ee1c4aed"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_stats.py": {
-    "mtime": 1778453677.8557081,
-    "hash": "cb7370182748d42cf12cb5f417892417"
+    "mtime": 1790514053.6823244,
+    "hash": "44cfbf1ce1990b8ed6e30d16a47017d6"
+  },
+  "/Users/i318088/prv/pfire/cachest/tests/test_keys.py": {
+    "mtime": 1790514505.9393842,
+    "hash": "bfdc8cc6d509f684376536bcf13262b1"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_config.py": {
-    "mtime": 1789857540.6997726,
-    "hash": "2cbf9a7d9d32f80034ae3efc2abd56c0"
+    "mtime": 1791281358.4448643,
+    "hash": "4b15a387d344bd9a1c39f3d764a60e48"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_rate_limiter.py": {
-    "mtime": 1778449772.4870095,
-    "hash": "44a980ea323f6ba6fad9f839cbc3ca25"
+    "mtime": 1790711085.5031633,
+    "hash": "c71fa9e18222170c8536c16c229f47e6"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_fetcher.py": {
-    "mtime": 1789418886.4790173,
-    "hash": "1bf4189008685b816333a1004c731944"
+    "mtime": 1790513931.9171922,
+    "hash": "4f39592b49d67a433a976f169799e8e8"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_main.py": {
-    "mtime": 1789103627.9031184,
-    "hash": "ab71a0cc00741da447cefcd3b87d3ffe"
+    "mtime": 1790711128.5325992,
+    "hash": "11e10e630fc7c10e7e99618c3a8278a4"
   },
   "/Users/i318088/prv/pfire/cachest/tests/test_cache.py": {
-    "mtime": 1779826720.4556034,
-    "hash": "c9c425a127a6f470c10622872a70f4be"
+    "mtime": 1790706292.558159,
+    "hash": "15c7c87e8588eb7ef3805cb5c9dab832"
+  },
+  "/Users/i318088/prv/pfire/cachest/static/stats.js": {
+    "mtime": 1790513725.342759,
+    "hash": "fa7b5e2a941805f69b35b87708760485"
   },
   "/Users/i318088/prv/pfire/cachest/requirements.txt": {
     "mtime": 1789103597.4746711,
     "hash": "9eeeee2d08697250ae7a2e80d9434c02"
   },
   "/Users/i318088/prv/pfire/cachest/config.yaml": {
-    "mtime": 1789857522.3912323,
-    "hash": "6b86c6641b5ceabeef88065759f27b1b"
+    "mtime": 1791402127.4208055,
+    "hash": "e235d13afd4b00173253e53d91f68617"
   },
   "/Users/i318088/prv/pfire/cachest/readme.md": {
-    "mtime": 1778691777.0963295,
-    "hash": "adafbcf90d366891a6f1ad02e8c53f3a"
+    "mtime": 1791320854.512067,
+    "hash": "cd50cd968e904caac9608ab920a64cb5"
   },
   "/Users/i318088/prv/pfire/cachest/docker-compose.yml": {
     "mtime": 1787657291.3587382,
@@ -78,6 +90,10 @@
   "/Users/i318088/prv/pfire/cachest/docs/superpowers/specs/2026-05-10-per-route-rate-limiter-design.md": {
     "mtime": 1778448300.7810018,
     "hash": "260d463d48201bf70c4ddb49f66b9c6a"
+  },
+  "/Users/i318088/prv/pfire/cachest/templates/stats.html": {
+    "mtime": 1790516039.212818,
+    "hash": "3167aa2c8640af80f35c34cb653929e5"
   },
   "/Users/i318088/prv/pfire/cachest/favicon.svg": {
     "mtime": 1778185931.4675524,
