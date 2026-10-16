@@ -250,6 +250,15 @@ docker build --target test -t cachest-test . && docker run --rm cachest-test   #
 No services are required — every test mocks Redis and the upstream. Tests also run on
 every push and pull request via the `test` job in `.github/workflows/docker-image.yml`.
 
+## CI
+
+A push whose commit message contains `[ci-skip]` skips the `test`, `release` and `build`
+jobs — no semver tag, no GitHub Release, no image is published. It exists for commits
+that change no image-relevant behaviour (docs, config, workflow tweaks). The convention
+is documented fleet-wide in `pfire-docs` → `docs/ci-skip.md`. Pull-request runs are
+unaffected: the `pull_request` event payload does not carry the push commit message, so
+the token only ever gates a push to `main`.
+
 ## Local Dev Without Docker
 
 ```sh
