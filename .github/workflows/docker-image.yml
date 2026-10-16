@@ -10,6 +10,9 @@ jobs:
 
   test:
     name: Test
+    # [ci-skip] in the pushed commit message skips the suite, the release and
+    # the image build (see pfire-docs docs/ci-skip.md for the convention).
+    if: ${{ !contains(github.event.head_commit.message, '[ci-skip]') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -30,7 +33,10 @@ jobs:
     # was published with a red suite on 2026-09-27 and nothing noticed). Gating
     # the release itself is the strong form: no bump, no tag, no image.
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    # The [ci-skip] check is mandatory here, not just belt-and-braces: with no
+    # test in the DAG of a skipped push, `release` would otherwise still bump
+    # and tag on a main push.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[ci-skip]') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -70,6 +76,7 @@ jobs:
     needs: [release, test]
     if: |
       always() &&
+      !contains(github.event.head_commit.message, '[ci-skip]') &&
       (github.event_name == 'pull_request' ||
        (github.event_name == 'push' &&
         needs.release.result == 'success' &&
