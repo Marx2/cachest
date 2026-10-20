@@ -2,117 +2,16 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [main]
   pull_request:
-    branches: [ "main" ]
+    branches: [main]
 
 jobs:
-
-  test:
-    name: Test
-    # [ci-skip] in the pushed commit message skips the suite, the release and
-    # the image build (see pfire-docs docs/ci-skip.md for the convention).
-    if: ${{ !contains(github.event.head_commit.message, '[ci-skip]') }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-
-      # Runs the test image directly rather than via `docker compose --profile test`:
-      # the compose test service also starts openst, which builds from ../openst and
-      # is not present in this repo's checkout. Every test mocks Redis and the
-      # upstream, so no services are needed.
-      - name: Build test image
-        run: docker build --target test -t cachest-test .
-
-      - name: Run test suite
-        run: docker run --rm cachest-test
-
-  release:
-    # A red suite must not produce a tag or a GitHub Release. Previously `build`
-    # needed only `release`, so a failing test still shipped an image (v1.0.44
-    # was published with a red suite on 2026-09-27 and nothing noticed). Gating
-    # the release itself is the strong form: no bump, no tag, no image.
-    needs: test
-    # The [ci-skip] check is mandatory here, not just belt-and-braces: with no
-    # test in the DAG of a skipped push, `release` would otherwise still bump
-    # and tag on a main push.
-    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[ci-skip]') }}
-    runs-on: ubuntu-latest
+  image:
+    uses: marx-org/pfire-workflows/.github/workflows/docker-image.yml@776b87d7f227954ac4301a69d41ef8783bc9bb33
+    with:
+      test_command: docker build --target test -t cachest-test . && docker run --rm cachest-test
+    secrets: inherit
     permissions:
       contents: write
-    outputs:
-      version: ${{ steps.bump.outputs.version }}
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0          # need full history to read tags
-
-      - name: Determine next version
-        id: bump
-        run: |
-          LATEST=$(git tag --list 'v*' --sort=-version:refname | head -n1)
-          if [ -z "$LATEST" ]; then
-            NEXT="v1.0.0"
-          else
-            # Strip leading 'v', split on '.', increment patch
-            IFS='.' read -r MAJOR MINOR PATCH <<< "${LATEST#v}"
-            NEXT="v${MAJOR}.${MINOR}.$((PATCH + 1))"
-          fi
-          echo "version=$NEXT" >> "$GITHUB_OUTPUT"
-
-      - name: Create tag and GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          tag_name: ${{ steps.bump.outputs.version }}
-          name: Release ${{ steps.bump.outputs.version }}
-          generate_release_notes: true   # auto-fills with commit messages
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  build:
-    # `always()` bypasses the implicit skip that `needs:` would otherwise cause,
-    # so listing `test` here is NOT a gate on its own — the push branch has to
-    # assert needs.test.result explicitly or a red suite still ships an image.
-    needs: [release, test]
-    if: |
-      always() &&
-      !contains(github.event.head_commit.message, '[ci-skip]') &&
-      (github.event_name == 'pull_request' ||
-       (github.event_name == 'push' &&
-        needs.release.result == 'success' &&
-        needs.test.result == 'success'))
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
       packages: write
-    steps:
-      - uses: actions/checkout@v6
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for Docker
-        id: meta
-        uses: docker/metadata-action@v6
-        with:
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=pr
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=raw,value=${{ needs.release.outputs.version }},enable=${{ github.event_name == 'push' }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./Dockerfile
-          push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            APP_VERSION=${{ needs.release.outputs.version }}
