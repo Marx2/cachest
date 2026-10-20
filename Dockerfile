@@ -1,11 +1,11 @@
 # Stage 1: build deps
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 WORKDIR /build
 COPY requirements.txt .
 RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Stage 2: test runner — build explicitly with --target test
-FROM python:3.12-slim AS test
+FROM python:3.15-slim AS test
 WORKDIR /app
 COPY --from=builder /install /usr/local
 COPY *.py config.yaml favicon.svg ./
@@ -16,7 +16,7 @@ COPY tests/ ./tests/
 CMD ["python", "-m", "pytest", "tests/", "-q"]
 
 # Stage 3: runtime (default)
-FROM python:3.12-slim AS runtime
+FROM python:3.15-slim AS runtime
 WORKDIR /app
 # APP_VERSION is passed by CI (release tag); falls back to 0.0.0-dev at runtime
 ARG APP_VERSION=""
