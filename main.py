@@ -358,8 +358,8 @@ def create_app(config: Config) -> FastAPI:
         """
         try:
             safe_key(prefix)
-        except ValueError as e:
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=422)
+        except ValueError:
+            return JSONResponse({"ok": False, "error": "unsafe cache prefix"}, status_code=422)
         deleted = await cache.delete_pattern(f"{prefix}:*")
         return JSONResponse({"ok": True, "deleted": deleted})
 
@@ -376,8 +376,8 @@ def create_app(config: Config) -> FastAPI:
             return JSONResponse({"ok": False, "error": "expected {\"keys\": [str]} "}, status_code=422)
         try:
             deleted = await cache.delete_keys(keys)
-        except ValueError as e:
-            return JSONResponse({"ok": False, "error": str(e)}, status_code=422)
+        except ValueError:
+            return JSONResponse({"ok": False, "error": "unsafe cache keys"}, status_code=422)
         return JSONResponse({"ok": True, "deleted": deleted})
 
     for route in config.routes:
