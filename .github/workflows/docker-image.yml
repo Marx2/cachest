@@ -8,7 +8,7 @@ on:
 
 jobs:
   image:
-    uses: marx-org/pfire-workflows/.github/workflows/docker-image.yml@776b87d7f227954ac4301a69d41ef8783bc9bb33
+    uses: marx-org/pfire-workflows/.github/workflows/docker-image.yml@19c638349f725dc2e816f28c7d203d127e0d93ce
     with:
       test_command: docker build --target test -t cachest-test . && docker run --rm cachest-test
     secrets: inherit
